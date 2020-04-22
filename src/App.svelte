@@ -78,8 +78,12 @@ let octave = 3
 {#if started}
 {#each keys as key} 
 	<button class:black={key.toString().match("#")}
-		on:mousedown={() => playKey({key:key+octave})}
-		on:mouseup={() => stopKey({key:key+octave})}
+
+		on:mousedown|preventDefault={() => playKey({key:key+octave})}
+		on:mouseup|preventDefault={() => stopKey({key:key+octave})}
+
+		on:touchstart|preventDefault={() => playKey({key:key+octave})}
+		on:touchend|preventDefault={() => stopKey({key:key+octave})}
 	>
 		{key}
 	</button>

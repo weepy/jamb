@@ -47,7 +47,7 @@ function stopKey({key}) {
 
 function start() {
 
-	ac = new AudioContext()
+	ac = new (window.AudioContext || window.webkitAudioContext)()
   	
 	player =new WebAudioFontPlayer();
 

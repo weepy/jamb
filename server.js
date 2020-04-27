@@ -15,11 +15,16 @@ http.listen(1234, () => {
   console.log('listening on *:1234');
 });
 
+let cid = 0
+
 io.on('connection', (socket) => {
     
-    socket.on('join', (user) => {
-        socket.user = user
-        io.emit('join', user)
+    console.log("connected")
+
+    socket.on('join', ({nick}) => {
+        socket.user = {nick,cid}
+        cid++
+        io.emit('join', socket.user)
     })
 
     socket.on('chat', (msg) => {
@@ -33,6 +38,11 @@ io.on('connection', (socket) => {
 
     socket.on('keyon', (x) => {
         io.emit('keyon', x)
+    })
+
+    socket.on('disconnect', (x) => {
+      console.log('disconnected: ' + socket.user)
+      io.emit('disconnected', socket.user)
     })
 })
 

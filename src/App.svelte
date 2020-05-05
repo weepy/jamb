@@ -50,12 +50,12 @@ let pingTime = 0
 
 
 
-socket.on('keyon', ({key, channel_id}) => {
+socket.on('keyon', ({key, channel_id, velocity}) => {
 	console.log("took", Date.now() - window.keyonat)
 	if(channel_id == thisUser.channel_id) {
 		return
 	}
-	playKey({key, channel_id})
+	playKey({key, channel_id, velocity})
 	
 })
 
@@ -71,9 +71,9 @@ socket.on('keyoff', ({key, channel_id}) => {
 })
 
 
-function playKey({key, channel_id}) {
+function playKey({key, channel_id, velocity}) {
 	const instrument = channels[channel_id]
-	instrument.triggerAttack(key)
+	instrument.triggerAttack(key, "+0", velocity)
 }
 
 function stopKey({key, channel_id}) {
@@ -104,7 +104,7 @@ function userPlayKey({key, velocity}) {
 	}
 
 	setTimeout(() => {
-		playKey({key, channel_id: thisUser.channel_id, velocity})
+		playKey({key, channel_id: thisUser.channel_id, velocity}) // user delay?
 	}, delay+pingTime)
 }
 

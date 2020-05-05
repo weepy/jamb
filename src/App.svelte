@@ -51,8 +51,8 @@ let pingTime = 0
 
 
 socket.on('keyon', ({key, channel_id, velocity}) => {
-	console.log("took", Date.now() - window.keyonat)
-	if(channel_id == thisUser.channel_id) {
+	// console.log("took", Date.now() - window.keyonat)
+	if(localStorage.localSend && channel_id == thisUser.channel_id) {
 		return
 	}
 	playKey({key, channel_id, velocity})
@@ -63,7 +63,7 @@ socket.on('keyon', ({key, channel_id, velocity}) => {
 
 
 socket.on('keyoff', ({key, channel_id}) => {
-	if(channel_id == thisUser.channel_id) {
+	if(localStorage.localSend && channel_id == thisUser.channel_id) {
 		return
 	}
 
@@ -85,13 +85,14 @@ function userStopKey({key}) {
 	const delay = parseInt(localStorage.delay)||0
 
 	socket.emit('keyoff', {key,channel_id: thisUser.channel_id}, delay)
-	if(localStorage.muted) {
-		return
+	
+	if(localStorage.localSend) {
+		setTimeout(() => {
+			stopKey({key, channel_id: thisUser.channel_id})
+		}, delay+pingTime)
 	}
 	
-	setTimeout(() => {
-		stopKey({key, channel_id: thisUser.channel_id})
-	}, delay+pingTime)
+
 }
 
 function userPlayKey({key, velocity}) {
@@ -99,13 +100,13 @@ function userPlayKey({key, velocity}) {
 	window.keyonat = Date.now()
 	socket.emit('keyon', {key,channel_id: thisUser.channel_id, velocity}, delay)
 
-	if(localStorage.muted) {
-		return
+	if(localStorage.localSend) {
+		setTimeout(() => {
+			playKey({key, channel_id: thisUser.channel_id, velocity}) // user delay?
+		}, delay+pingTime)
 	}
 
-	setTimeout(() => {
-		playKey({key, channel_id: thisUser.channel_id, velocity}) // user delay?
-	}, delay+pingTime)
+
 }
 
 const channels = {}

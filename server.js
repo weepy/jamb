@@ -19,9 +19,11 @@ let g_channel_id = 0
 
 let users = []
 
+
+
 io.on('connection', (socket) => {
     
-    console.log("connected")
+    console.log("connected!")
 
     socket.on('enter', (fn) => {
         
@@ -44,13 +46,20 @@ io.on('connection', (socket) => {
       io.emit('chat', msg)
     })
 
-    socket.on('keyoff', (x) => {
+    socket.on('keyoff', (x, delay) => {
+      console.log("off", delay)
+      setTimeout(() => {
+        console.log("emit off")
         io.emit('keyoff', x)
+        }, parseInt(delay)||0)
     })
 
-    socket.on('keyon', (x) => {
-        
+    socket.on('keyon', (x, delay) => {
+      console.log("on", delay)
+      setTimeout(() => {
+        console.log("on")
         io.emit('keyon', x)
+      }, parseInt(delay)||0)
     })
 
     socket.on('_ping', (x, fn) => {

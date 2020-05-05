@@ -4,20 +4,27 @@
 	<meta charset='utf-8'>
 	<meta name='viewport' content='width=device-width,initial-scale=1'>
 
-	<script src='https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js'></script>
+	<script src="/webcomponents.js"></script>
+	<script src="/tone.js"></script>
+	<script src="/tone-ui.js"></script>
+	
 	<script src='/socket.io/socket.io.js'></script>
 	<script src='/webmidi.js'></script>
 
-        
-	<title>Jamb app</title>
+
+
 
 	<link rel='icon' type='image/png' href='/favicon.png'>
 	<link rel='stylesheet' href='/global.css'>
 	<link rel='stylesheet' href='/build/bundle.css'>
 	
+	<style>tone-keyboard {display:none; margin-top:20vw}</style>
 	<script defer src='/build/bundle.js'></script>
 </head>
 
 <body>
+	<tone-demo autoplay>
+		<tone-keyboard octaves="2"></tone-keyboard>
+	</tone-demo>
 </body>
 </html>

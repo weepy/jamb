@@ -144,14 +144,14 @@ let midiInput
 
 		if(midiInput) {
 			midiInput.addListener('noteon', "all", (e) => {
-					userPlayKey({key:e.note.number, velocity: e.note.velocity})
-				}
-			)
+				const key = e.note.name + e.note.octave
+				userPlayKey({key, velocity: e.velocity})
+			})
 
 			midiInput.addListener('noteoff', "all", (e) => {
-					userStopKey({key:e.note.number})
-				}
-			)
+				const key = e.note.name + e.note.octave
+				userStopKey({key})
+			})
 		}
 
 	})

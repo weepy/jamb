@@ -14,11 +14,13 @@ let sf
 // let instr
 // let player
 
+
+
 let socket = io()
 
 
 let nick = localStorage.nick
-let thiscid
+let thischannel_id
 
 let pingTime = 0
 
@@ -27,34 +29,34 @@ let pingTime = 0
 
 
 
-socket.on('keyon', ({key, cid}) => {
+socket.on('keyon', ({key, channel_id}) => {
 
-	if(cid == thiscid) {
+	if(channel_id == thischannel_id) {
 		return
 	}
-	playKey({key, cid})
+	playKey({key, channel_id})
 	
 })
 
 
 
 
-socket.on('keyoff', ({key, cid}) => {
-	if(cid == thiscid) {
+socket.on('keyoff', ({key, channel_id}) => {
+	if(channel_id == thischannel_id) {
 		return
 	}
 
-	playKey({key, cid})
+	stopKey({key, channel_id})
 })
 
 
-function playKey({key, cid}) {
-	const ch = channels[cid]
+function playKey({key, channel_id}) {
+	const ch = channels[channel_id]
 	ch.keyNodes[key] = ch.player.queueWaveTable(ac, ac.destination, ch.instr, 0, key, 10.75);
 }
 
-function stopKey({key, cid}) {
-	const ch = channels[cid]
+function stopKey({key, channel_id}) {
+	const ch = channels[channel_id]
 
     const p = ch.keyNodes[key]
 	
@@ -65,22 +67,31 @@ function stopKey({key, cid}) {
 }
 
 function userStopKey({key}) {
-	socket.emit('keyoff', {key,cid: thiscid})
+	socket.emit('keyoff', {key,channel_id: thischannel_id})
+	if(window.muted) {
+		return
+	}
+	
 	setTimeout(() => {
-		stopKey({key, cid: thiscid})
+		stopKey({key, channel_id: thischannel_id})
 	}, pingTime)
 }
 
 function userPlayKey({key}) {
-	socket.emit('keyon', {key,cid: thiscid})
+	socket.emit('keyon', {key,channel_id: thischannel_id})
+
+	if(window.muted) {
+		return
+	}
 	setTimeout(() => {
-		playKey({key, cid: thiscid})
+		playKey({key, channel_id: thischannel_id})
 	}, pingTime)
 }
 
 const channels = {}
 
 function loadPlayer(channel_id, preset) {
+	console.log("loading player", channel_id, preset)
 	const name = '_tone_' + preset
 	const url = 'https://surikov.github.io/webaudiofontdata/sound/' + preset + '.js'
 
@@ -97,6 +108,8 @@ function loadPlayer(channel_id, preset) {
 	ch.player.loader.waitLoad(function () {
 		started = true
 		ch.instr = window[name]
+
+		console.log("loaded player", channel_id, preset)
 	})
 }
 
@@ -109,27 +122,36 @@ let midiInput
 		
 		midiInput = WebMidi.inputs[0]
 
-		midiInput.addListener('noteon', "all", (e) => {
-				userPlayKey({key:e.note.number})
-			}
-		)
+		if(midiInput) {
+			midiInput.addListener('noteon', "all", (e) => {
+					userPlayKey({key:e.note.number})
+				}
+			)
 
-		midiInput.addListener('noteoff', "all", (e) => {
-				userStopKey({key:e.note.number})
-			}
-		)
+			midiInput.addListener('noteoff', "all", (e) => {
+					userStopKey({key:e.note.number})
+				}
+			)
+		}
+
 	})
 }
 
 
-function join() {
+function enter() {
 	ac = new (window.AudioContext || window.webkitAudioContext)()
 	
 	if(!nick) {
 		return
 	}
 
-	socket.emit('join', {nick})
+	socket.emit('enter',  (_users) => {
+		users = _users
+
+		users.forEach(u => addNewUser(u))
+			
+		socket.emit('join', {nick})
+	})
 
 	localStorage.nick = nick
 	
@@ -137,22 +159,30 @@ function join() {
 
 const presets = [
 	{file: '0000_FluidR3_GM_sf2_file', name: 'piano'},
-	{file: '0250_Acoustic_Guitar_sf2_file', name: 'guitar'},
-	{file:'0330_Aspirin_sf2_file', name:'drums'}
+	{file: '0250_Acoustic_Guitar_sf2_file', name: 'guitar'}
 
 ]
 
 let users = []
 
-socket.on('join', (user) => {
+
+
+function addNewUser(user) {
+	users = users.filter(u => u != user)
 	users = [...users, user]
 
-	console.log(user, "joined")
-	loadPlayer(user.cid, presets[user.cid % presets.length].file)
+	console.log("addingUser", user)
+	
+
+	loadPlayer(user.channel_id, presets[user.channel_id % presets.length].file)
 
 	if(user.nick == nick) {
-		thiscid = user.cid
+		thischannel_id = user.channel_id
 	}
+}
+
+socket.on('join', (user) => {
+	addNewUser(user)
 })
 
 const keys = []
@@ -166,7 +196,7 @@ let octave = 3
 
 {#if !started}
 <input bind:value={nick} placeholder="nick" />
-<button on:click={join}>JOIN</button>
+<button on:click={enter}>ENTER</button>
 {/if}
 
 {#if started}
@@ -176,12 +206,13 @@ let octave = 3
 		on:mousedown|preventDefault={() => userPlayKey({key:key+octave})}
 		on:mouseup|preventDefault={() => userStopKey({key:key+octave})}
 
-		on:touchstart|preventDefault={() => userPlayKey({key:key+octave})}
-		on:touchend|preventDefault={() => userStopKey({key:key+octave})}
+
 	>
 		{key}
 	</button>
 {/each}
+
+<!-- <div> muted: <input type="checkbox" bind:value={muted} /> </div> -->
 
 {/if}
 

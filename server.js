@@ -15,20 +15,32 @@ http.listen(1234, () => {
   console.log('listening on *:1234');
 });
 
-let cid = 0
+let g_channel_id = 0
+
+let users = []
 
 io.on('connection', (socket) => {
     
     console.log("connected")
 
+    socket.on('enter', (fn) => {
+        
+        fn( users )
+    })
+
     socket.on('join', ({nick}) => {
-        socket.user = {nick,cid}
-        cid++
+        const channel_id = g_channel_id++
+        const user = {nick,channel_id}
+        socket.user = user
+        users.push(user)
+        
+        
         io.emit('join', socket.user)
     })
 
+
     socket.on('chat', (msg) => {
-      console.log('message: ' + msg)
+      
       io.emit('chat', msg)
     })
 
@@ -47,6 +59,9 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', (x) => {
       console.log('disconnected: ' + socket.user)
+
+      users = users.filter(u => socket.user != u)
+
       io.emit('disconnected', socket.user)
     })
 })

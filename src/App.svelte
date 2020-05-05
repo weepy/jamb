@@ -4,6 +4,7 @@
 import io from 'socket.io-client'
 
 import Chat from './Chat.svelte'
+import PingTime from './PingTime.svelte'
 
 
 let started = false 
@@ -19,21 +20,40 @@ let socket = io()
 let nick = localStorage.nick
 let thiscid
 
+let pingTime = 0
+
+/////// PING
+// $: console.log(pingTime)
+
+
+
 socket.on('keyon', ({key, cid}) => {
 
-	const ch = channels[cid]
-	ch.keyNodes[key] = ch.player.queueWaveTable(ac, ac.destination, ch.instr, 0, key, 10.75);
+	if(cid == thiscid) {
+		return
+	}
+	playKey({key, cid})
 	
-	console.log("keyon")
 })
 
 
-function playKey({key}) {
-	socket.emit('keyon', {key,cid: thiscid})
-}
+
 
 socket.on('keyoff', ({key, cid}) => {
+	if(cid == thiscid) {
+		return
+	}
 
+	playKey({key, cid})
+})
+
+
+function playKey({key, cid}) {
+	const ch = channels[cid]
+	ch.keyNodes[key] = ch.player.queueWaveTable(ac, ac.destination, ch.instr, 0, key, 10.75);
+}
+
+function stopKey({key, cid}) {
 	const ch = channels[cid]
 
     const p = ch.keyNodes[key]
@@ -42,11 +62,20 @@ socket.on('keyoff', ({key, cid}) => {
 		p.cancel()
 		delete ch.keyNodes[key]
 	}
-})
+}
 
-
-function stopKey({key}) {
+function userStopKey({key}) {
 	socket.emit('keyoff', {key,cid: thiscid})
+	setTimeout(() => {
+		stopKey({key, cid: thiscid})
+	}, pingTime)
+}
+
+function userPlayKey({key}) {
+	socket.emit('keyon', {key,cid: thiscid})
+	setTimeout(() => {
+		playKey({key, cid: thiscid})
+	}, pingTime)
 }
 
 const channels = {}
@@ -81,12 +110,12 @@ let midiInput
 		midiInput = WebMidi.inputs[0]
 
 		midiInput.addListener('noteon', "all", (e) => {
-				playKey({key:e.note.number})
+				userPlayKey({key:e.note.number})
 			}
 		)
 
 		midiInput.addListener('noteoff', "all", (e) => {
-				stopKey({key:e.note.number})
+				userStopKey({key:e.note.number})
 			}
 		)
 	})
@@ -94,7 +123,6 @@ let midiInput
 
 
 function join() {
-
 	ac = new (window.AudioContext || window.webkitAudioContext)()
 	
 	if(!nick) {
@@ -145,18 +173,21 @@ let octave = 3
 {#each keys as key} 
 	<button class="key" class:black={key.toString().match("#")}
 
-		on:mousedown|preventDefault={() => playKey({key:key+octave})}
-		on:mouseup|preventDefault={() => stopKey({key:key+octave})}
+		on:mousedown|preventDefault={() => userPlayKey({key:key+octave})}
+		on:mouseup|preventDefault={() => userStopKey({key:key+octave})}
 
-		on:touchstart|preventDefault={() => playKey({key:key+octave})}
-		on:touchend|preventDefault={() => stopKey({key:key+octave})}
+		on:touchstart|preventDefault={() => userPlayKey({key:key+octave})}
+		on:touchend|preventDefault={() => userStopKey({key:key+octave})}
 	>
 		{key}
 	</button>
 {/each}
+
 {/if}
 
 <Chat socket={socket}/>
+
+<PingTime socket={socket} onchange={(s) => pingTime =s} />
 
 <style>
 

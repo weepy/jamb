@@ -37,7 +37,12 @@ io.on('connection', (socket) => {
     })
 
     socket.on('keyon', (x) => {
+        
         io.emit('keyon', x)
+    })
+
+    socket.on('_ping', (x, fn) => {
+      fn(x)
     })
 
     socket.on('disconnect', (x) => {

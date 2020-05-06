@@ -47,17 +47,17 @@ io.on('connection', (socket) => {
     })
 
     socket.on('keyoff', (x, delay) => {
-      console.log("off", delay)
+
       setTimeout(() => {
-        console.log("emit off")
+
         io.emit('keyoff', x)
         }, parseInt(delay)||0)
     })
 
     socket.on('keyon', (x, delay) => {
-      console.log("on", delay)
+      
       setTimeout(() => {
-        console.log("on")
+        
         io.emit('keyon', x)
       }, parseInt(delay)||0)
     })

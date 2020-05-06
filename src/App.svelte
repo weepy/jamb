@@ -99,7 +99,7 @@ let pingTime = 0
 
 socket.on('keyon', ({key, channel_id, velocity}) => {
 	// console.log("took", Date.now() - window.keyonat)
-	if(localStorage.localSend && channel_id == thisUser.channel_id) {
+	if(localStorage.nolocalSend && channel_id == thisUser.channel_id) {
 		return
 	}
 	playKey({key, channel_id, velocity})
@@ -110,7 +110,7 @@ socket.on('keyon', ({key, channel_id, velocity}) => {
 
 
 socket.on('keyoff', ({key, channel_id}) => {
-	if(localStorage.localSend && channel_id == thisUser.channel_id) {
+	if(localStorage.nolocalSend && channel_id == thisUser.channel_id) {
 		return
 	}
 
@@ -133,7 +133,7 @@ function userStopKey({key}) {
 
 	socket.emit('keyoff', {key,channel_id: thisUser.channel_id}, delay)
 	
-	if(localStorage.localSend) {
+	if(localStorage.nolocalSend) {
 		setTimeout(() => {
 			stopKey({key, channel_id: thisUser.channel_id})
 		}, delay+pingTime)
@@ -147,7 +147,7 @@ function userPlayKey({key, velocity}) {
 	window.keyonat = Date.now()
 	socket.emit('keyon', {key,channel_id: thisUser.channel_id, velocity}, delay)
 
-	if(localStorage.localSend) {
+	if(localStorage.nolocalSend) {
 		setTimeout(() => {
 			playKey({key, channel_id: thisUser.channel_id, velocity}) // user delay?
 		}, delay+pingTime)
@@ -216,7 +216,7 @@ function enter() {
 	// document.querySelector('tone-keyboard').style.display = 'block'
 
 	Tone.start()
-	
+
 	socket.emit('enter',  (_users) => {
 		users = _users
 

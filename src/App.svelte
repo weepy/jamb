@@ -16,21 +16,68 @@ let sf
 let nick = localStorage.nick
 
 
-
+Tone.context.lookAhead=0.0
+Tone.context.latencyHint='fastest'
 
 onMount(() => {
-	//attach a listener to the keyboard events
-	document.querySelector('tone-keyboard').addEventListener('noteon', e => {
+
+	const keys = "AWSEDFTGYHUJKOLP"
+	const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B","C+","C#+","D+","D#+","E+","F+"]
+	let octave = 3
+
+	function getKeyFromChar(s) {
 		
+		const index = keys.indexOf(s) 
+		if(index == -1) {
+			return null
+		}
+		const key = notes[index]
+
+		if(key.slice(-1) == "+") {
+			return key.slice(0,-1)+(octave+1)
+		}
+		return key + octave
+	}
+
+
+	
+	let keysPressed = {}
+	document.body.addEventListener('keydown', e => {		
+		const ch =  String.fromCharCode(e.keyCode)
+		if(keysPressed[ch] == null) {
+			keysPressed[ch] = true
+			const key = getKeyFromChar(ch)
+			
+			if(key) {
+				userPlayKey({key, velocity: 0.7})
+			}
+		}
+
+
 		
-		userPlayKey({key: e.detail.name, velocity: 0.7})
 	})
 
-	document.querySelector('tone-keyboard').addEventListener('noteoff', e => {
-		userStopKey({key: e.detail.name})
-	})
+	document.body.addEventListener('keyup', e => {
+		const ch =  String.fromCharCode(e.keyCode)
 
-	// document.querySelector('tone-keyboard').style.display='none'
+		delete keysPressed[ch]
+
+		const key = getKeyFromChar(ch)
+
+
+		if(key) {
+			userStopKey({key})
+		}
+
+		if(ch == "Z") {
+			octave--
+			if(octave < 1) octave = 1
+		}
+		if(ch == "X") {
+			octave++
+			if(octave > 5) octave = 5
+		}
+	})
 
 })
 
@@ -166,9 +213,10 @@ function enter() {
 		return
 	}
 
-	document.querySelector('tone-keyboard').style.display = 'block'
+	// document.querySelector('tone-keyboard').style.display = 'block'
 
-
+	Tone.start()
+	
 	socket.emit('enter',  (_users) => {
 		users = _users
 

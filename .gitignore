@@ -1,4 +1,4 @@
 /node_modules/
-/__public/bundle/*
+/public/build/
 
 .DS_Store

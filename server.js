@@ -41,9 +41,9 @@ io.on('connection', (socket) => {
     })
 
 
-    socket.on('chat', (msg) => {
+    socket.on('chat', ({text}) => {
       
-      io.emit('chat', msg)
+      io.emit('chat', {text, nick: socket.user.nick})
     })
 
     socket.on('keyoff', (x, delay) => {

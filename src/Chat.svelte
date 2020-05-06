@@ -11,19 +11,27 @@ function submit(e) {
     input.value = ''
 }
 
-socket.on('chat', (chat) => {
+socket.on('chat', ({text, nick}) => {
     
     while(chats.length > 20)
         chats.shift()
 
-    chats = [...chats, chat]
+    chats = [...chats, {text, nick}]
+})
+
+socket.on('join', ({nick}) => {
+    
+    while(chats.length > 20)
+        chats.shift()
+
+    chats = [...chats, {text: `${nick} joined`}]
 })
 
 </script>
 
 <ul id="messages">
     {#each chats as chat}
-        <li>{chat.text}</li>
+        <li><b>{chat.nick||''}</b> {chat.text}</li>
     {/each}
 </ul>
 

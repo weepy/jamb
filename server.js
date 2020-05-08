@@ -30,9 +30,9 @@ io.on('connection', (socket) => {
         fn( users )
     })
 
-    socket.on('join', ({nick}) => {
+    socket.on('join', ({nick, instrumentType}) => {
         const channel_id = g_channel_id++
-        const user = {nick,channel_id}
+        const user = {nick,channel_id,instrumentType}
         socket.user = user
         users.push(user)
         
@@ -67,11 +67,14 @@ io.on('connection', (socket) => {
     })
 
     socket.on('disconnect', (x) => {
-      console.log('disconnected: ' + socket.user)
+      
 
       users = users.filter(u => socket.user != u)
 
-      io.emit('disconnected', socket.user)
+      if(socket.user) {
+          console.log('disconnected: ' + socket.user)
+          io.emit('disconnected', socket.user)
+      }
     })
 })
 

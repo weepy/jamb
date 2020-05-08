@@ -23,8 +23,6 @@ socket.on('join', ({nick}) => {
     
     while(chats.length > 20)
         chats.shift()
-
-    chats = [...chats, {text: `${nick} joined`}]
 })
 
 </script>

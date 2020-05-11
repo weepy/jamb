@@ -1,12 +1,12 @@
 <script>
 export let user
-
+// export let instrument
 
 </script>
 
 <div class=user>
     <h2>{user.nick}</h2>
-    <p>{user.instrumentType}</p>
+   
 </div>
 
 <style>

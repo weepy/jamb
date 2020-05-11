@@ -1,7 +1,7 @@
 <script>
 import {onMount} from 'svelte'
 
-let smoothedPingTime = 30
+let smoothedPingTime = 10
 export let socket
 export let onchange = () => { }
 
@@ -20,10 +20,10 @@ onMount(() => {
             socket.emit('_ping', Date.now(), (date) => {	
                 let pingTime = Date.now() - date + mockdelay()
                 
-                if(pingTime > 1000) {
-                    pingTime = 1000
+                if(pingTime > 250) {
+                    pingTime = 250
                 }
-                smoothedPingTime = (smoothedPingTime)*0.8 + pingTime*0.2
+                smoothedPingTime = (smoothedPingTime)*0.7 + pingTime*0.3
 
                 // console.log(pingTime, Math.floor(smoothedPingTime))
 

@@ -1,4 +1,7 @@
 <script>
+import Factory from './instruments/Factory.js'
+import Presets from './instruments/Presets.js'
+import PresetSelector from './PresetSelector.svelte'
 
 // import Soundfont from 'soundfont-player'
 import io from 'socket.io-client'
@@ -8,25 +11,16 @@ import PingTime from './PingTime.svelte'
 import {onMount} from 'svelte'
 
 import UserAvatar from './UserAvatar.svelte'
+import Networker from './Networker.js'
 
-let instrumentTypes = [
-	{text:"Piano"},
-	{text:"AMSynth"},
-	{text:"Drum505"},
-	{text:"None"}
-]
-
-let instrumentType = "AMSynth"
-
+let networker
+const instruments = {}
 
 let started = false 
 
-let ac
-let sf
-// let instr
-// let player
-let nick
 
+let nick = localStorage.nick
+let preset = Presets[0]
 
 Tone.context.lookAhead=0.0
 Tone.context.latencyHint='fastest'
@@ -61,7 +55,8 @@ onMount(() => {
 			const key = getKeyFromChar(ch)
 			
 			if(key) {
-				userPlayKey({key, velocity: 0.7})
+				networker.run('noteon', {key, velocity: 0.7})
+				
 			}
 		}
 
@@ -78,7 +73,7 @@ onMount(() => {
 
 
 		if(key) {
-			userStopKey({key})
+			networker.run('noteoff', {key})
 		}
 
 		if(ch == "Z") {
@@ -102,69 +97,75 @@ let thisUser = {
 }
 
 
-let pingTime = 0
 
-/////// PING
-// $: console.log(pingTime)
+const actions = {
 
+	noteon(arg, channel_id) {
+		instruments[channel_id].noteon(arg)	
+	},
 
+	noteoff(arg, channel_id) {
+		instruments[channel_id].noteoff(arg)	
+	},
 
-socket.on('keyon', ({key, channel_id, velocity}) => {
-	// console.log("took", Date.now() - window.keyonat)
-	if(!localStorage.nolocalSend && channel_id == thisUser.channel_id) {
-		return
-	}
-	instruments[channel_id].noteon(key, velocity)
+	loadpreset(arg, channel_id) {
+		instruments[channel_id].loadpreset(arg)	
+	},
 	
-})
+	enter(_users) {
+		users = _users
+
+		users.forEach(u => actions.join(u))
+
+		localStorage.nick = thisUser.nick
+		networker.run('join', {nick: thisUser.nick })
+	},
+
+	join(user) {
+		if( users.findIndex(u => user.channel_id == u.channel_id) < 0) {
+			users = [...users, user]
+		}
+
+		if(user.nick == thisUser.nick) {
+			thisUser.channel_id = user.channel_id
+			networker.thisUser.channel_id = user.channel_id
+		}
+
+		console.log("addingUser", user)
+
+		const instrument = Factory({type: "Sampler"})
+		instrument.connect(reverb)
+		
+
+		networker.run("loadpreset", preset )
+
+		// instrument.load(preset)
+		
+		instruments[user.channel_id] = instrument		
 
 
+		thisUser = { ...thisUser, instrument}
+		users.find(u => u.channel_id == thisUser.channel_id).instrument = instrument
+
+		users = users
+		networker.thisUser = thisUser // OOPS
+	},
 
 
-socket.on('keyoff', ({key, channel_id}) => {
-	if(!localStorage.nolocalSend && channel_id == thisUser.channel_id) {
-		return
+	disconnected(user, channel_id) {
+		users = users.filter(u => u.nick != user.nick)
 	}
-
-	instruments[channel_id].noteoff(key)
-})
-
-function mockdelay() {
-	const d = parseFloat(localStorage.delay)||0
-	const j = parseFloat(localStorage.jitter)||0
-	return d * (1+j*(Math.random()-0.5))
+	
 }
-function userStopKey({key}) {
-	
-
-	const channel_id = thisUser.channel_id
-	socket.emit('keyoff', {key, channel_id }, mockdelay())
-	
-	if(!localStorage.nolocalSend) {
-		setTimeout(() => {
-			instruments[channel_id].noteoff(key)
-		}, pingTime)
-	}
-	
-
-}
-
-function userPlayKey({key, velocity}) {
-
-	const channel_id = thisUser.channel_id
-	window.keyonat = Date.now()
-	socket.emit('keyon', {key, channel_id, velocity}, mockdelay())
-
-	if(!localStorage.nolocalSend) {
-		setTimeout(() => {
-			instruments[channel_id].noteon(key, velocity)
-		}, pingTime)
-	}
 
 
-}
+networker = new Networker(socket, actions, thisUser)
 
-const instruments = {}
+
+
+// networker.run("loadpreset", preset )
+
+
 
 
 let midiInput
@@ -179,12 +180,12 @@ let midiInput
 		if(midiInput) {
 			midiInput.addListener('noteon', "all", (e) => {
 				const key = e.note.name + e.note.octave
-				userPlayKey({key, velocity: e.velocity*0.85+0.15})
+				networker.run('noteon', {key, velocity: e.velocity*0.85+0.15})
 			})
 
 			midiInput.addListener('noteoff', "all", (e) => {
 				const key = e.note.name + e.note.octave
-				userStopKey({key})
+				networker.run('noteoff', {key})
 			})
 		}
 
@@ -193,26 +194,14 @@ let midiInput
 
 
 function enter() {
-	
-	
 	if(!nick) {
 		return
 	}
 
 	Tone.start()
 
-	
-	socket.emit('enter',  (_users) => {
-		users = _users
-
-		users.forEach(u => addNewUser(u))
-		
-		console.log( instrumentType )
-		socket.emit('join', {nick: thisUser.nick, instrumentType })
-	})
-
-	thisUser = { ...thisUser, nick} 
-	
+	networker.run('enter')
+	thisUser.nick = nick
 }
 
 
@@ -225,41 +214,8 @@ reverb.generate().then(() => {
 	console.log("Reverb is ready")
 });
 
-import Factory from './instruments/Factory.js'
-
-function addNewUser(user) {
-	users = users.filter(u => u != user)
-	users = [...users, user]
-
-	console.log("addingUser", user)
-
-	const type = user.instrumentType
-
-	if(type != null) {
-		const instrument = Factory({type})
-		
-		instrument.output.connect(reverb)
-		
-		instruments[user.channel_id] = instrument		
-	}
 
 
-	if(user.nick == thisUser.nick) {
-		thisUser.channel_id = user.channel_id
-	}
-}
-
-function removeUser(user) {
-	users = users.filter(u => u.nick != user.nick)
-}
-
-socket.on('join', (user) => {
-	addNewUser(user)
-})
-
-socket.on('disconnected', (user) => {
-	removeUser(user)
-})
 
 
 </script>
@@ -271,24 +227,19 @@ socket.on('disconnected', (user) => {
 	
 	{#if !thisUser.nick}
 		<input bind:value={nick} placeholder="nick" />
-		<select bind:value={instrumentType} placeholder="nick">
-			{#each instrumentTypes as instrumentType}
-			<option value={instrumentType.text}>
-				{instrumentType.text}
-			</option>
-			{/each}
-		</select>
+
 		<button on:click={enter}>ENTER</button>
 	{:else}
+	
+		<PresetSelector presets={Presets} currentPreset={preset} onchange={(p) => {
+			networker.run('loadpreset', p)
+		}} />
+
 		<Chat socket={socket}/>
 	{/if}
 
 
-
-
-	
-
-	<PingTime socket={socket} onchange={(s) => pingTime =s} />
+	<PingTime socket={socket} onchange={(s) => networker.pingTime =s} />
 </div>
 
 <style>

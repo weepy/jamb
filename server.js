@@ -24,43 +24,53 @@ let users = []
 io.on('connection', (socket) => {
     
     console.log("connected!")
+  
+    let channel_id
 
     socket.on('enter', (fn) => {
-        
-        fn( users )
+        socket.emit('enter', users)
+
     })
 
     socket.on('join', ({nick, instrumentType}) => {
-        const channel_id = g_channel_id++
-        const user = {nick,channel_id,instrumentType}
+        channel_id = g_channel_id++
+        const user = {nick, channel_id, instrumentType}
         socket.user = user
         users.push(user)
         
         
-        io.emit('join', socket.user)
+        io.emit('join', socket.user, channel_id)
     })
 
 
     socket.on('chat', ({text}) => {
       
-      io.emit('chat', {text, nick: socket.user.nick})
+      io.emit('chat', {text, nick: socket.user.nick}, channel_id)
     })
 
-    socket.on('keyoff', (x, delay) => {
+    socket.on('noteon', (x, delay) => {
 
       setTimeout(() => {
-
-        io.emit('keyoff', x)
-        }, parseInt(delay)||0)
-    })
-
-    socket.on('keyon', (x, delay) => {
-      
-      setTimeout(() => {
-        
-        io.emit('keyon', x)
+        io.emit('noteon', x, channel_id)
       }, parseInt(delay)||0)
     })
+
+    socket.on('noteoff', (x, delay) => {
+
+      setTimeout(() => {
+        io.emit('noteoff', x, channel_id)
+      }, parseInt(delay)||0)
+    })
+
+    socket.on('loadpreset', (x, delay) => {
+
+      setTimeout(() => {
+        
+        io.emit('loadpreset', x, channel_id)
+      }, parseInt(delay)||0)
+    })
+
+
 
     socket.on('_ping', (x, fn) => {
       fn(x)

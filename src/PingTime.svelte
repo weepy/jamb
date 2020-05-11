@@ -20,12 +20,11 @@ onMount(() => {
             socket.emit('_ping', Date.now(), (date) => {	
                 let pingTime = Date.now() - date + mockdelay()
                 
-                if(pingTime > 250) {
-                    pingTime = 250
+                if(pingTime > 200) {
+                    pingTime = 200
                 }
-                smoothedPingTime = (smoothedPingTime)*0.7 + pingTime*0.3
+                smoothedPingTime = (smoothedPingTime)*0.8 + pingTime*0.2
 
-                // console.log(pingTime, Math.floor(smoothedPingTime))
 
                 onchange(smoothedPingTime)
             })

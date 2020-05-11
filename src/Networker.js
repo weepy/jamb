@@ -27,9 +27,7 @@ class Networker {
 	}
 
 	addAction(action) {
-
-
-
+		
 		this.socket.on(action, (arg, channel_id) => {
 			
 			debug("receive", action, arg, channel_id)

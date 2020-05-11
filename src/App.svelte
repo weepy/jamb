@@ -49,6 +49,7 @@ const actions = {
 
 	loadpreset(arg, channel_id) {
 		instruments[channel_id].loadpreset(arg)	
+		users = users
 	},
 	
 	enter(_users) {
@@ -73,6 +74,8 @@ const actions = {
 		
 		instruments[user.channel_id] = instrument	
 
+
+		user.instrument = instrument
 		if(user.nick == thisUser.nick) {
 			thisUser.channel_id = user.channel_id
 			networker.thisUser.channel_id = user.channel_id
@@ -80,6 +83,7 @@ const actions = {
 			networker.thisUser = thisUser
 		}
 
+		users = users
 		
 
 	},

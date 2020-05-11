@@ -6,7 +6,9 @@ export let user
 
 <div class=user>
     <h2>{user.nick}</h2>
-   
+   {#if user.instrument && user.instrument.preset }
+    <p>{user.instrument.preset.name}</p>
+   {/if} 
 </div>
 
 <style>

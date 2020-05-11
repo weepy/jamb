@@ -25,68 +25,7 @@ let preset = Presets[0]
 Tone.context.lookAhead=0.0
 Tone.context.latencyHint='fastest'
 
-onMount(() => {
-
-	const keys = "AWSEDFTGYHUJKOLP"
-	const notes = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B","C+","C#+","D+","D#+","E+","F+"]
-	let octave = 3
-
-	function getKeyFromChar(s) {
-		
-		const index = keys.indexOf(s) 
-		if(index == -1) {
-			return null
-		}
-		const key = notes[index]
-
-		if(key.slice(-1) == "+") {
-			return key.slice(0,-1)+(octave+1)
-		}
-		return key + octave
-	}
-
-
-	
-	let keysPressed = {}
-	document.body.addEventListener('keydown', e => {		
-		const ch =  String.fromCharCode(e.keyCode)
-		if(keysPressed[ch] == null) {
-			keysPressed[ch] = true
-			const key = getKeyFromChar(ch)
-			
-			if(key) {
-				networker.run('noteon', {key, velocity: 0.7})
-				
-			}
-		}
-
-
-		
-	})
-
-	document.body.addEventListener('keyup', e => {
-		const ch =  String.fromCharCode(e.keyCode)
-
-		delete keysPressed[ch]
-
-		const key = getKeyFromChar(ch)
-
-
-		if(key) {
-			networker.run('noteoff', {key})
-		}
-
-		if(ch == "Z") {
-			octave--
-			if(octave < 1) octave = 1
-		}
-		if(ch == "X") {
-			octave++
-			if(octave > 5) octave = 5
-		}
-	})
-
-})
+import Keyboard from './Keyboard.svelte'
 
 
 let socket = io()
@@ -113,9 +52,9 @@ const actions = {
 	},
 	
 	enter(_users) {
-		users = _users
+		//users = _users
 
-		users.forEach(u => actions.join(u))
+		_users.forEach(u => actions.join(u))
 
 		localStorage.nick = thisUser.nick
 		networker.run('join', {nick: thisUser.nick })
@@ -126,29 +65,23 @@ const actions = {
 			users = [...users, user]
 		}
 
-		if(user.nick == thisUser.nick) {
-			thisUser.channel_id = user.channel_id
-			networker.thisUser.channel_id = user.channel_id
-		}
 
 		console.log("addingUser", user)
 
 		const instrument = Factory({type: "Sampler"})
 		instrument.connect(reverb)
 		
+		instruments[user.channel_id] = instrument	
 
-		networker.run("loadpreset", preset )
+		if(user.nick == thisUser.nick) {
+			thisUser.channel_id = user.channel_id
+			networker.thisUser.channel_id = user.channel_id
+			networker.run("loadpreset", preset )
+			networker.thisUser = thisUser
+		}
 
-		// instrument.load(preset)
 		
-		instruments[user.channel_id] = instrument		
 
-
-		thisUser = { ...thisUser, instrument}
-		users.find(u => u.channel_id == thisUser.channel_id).instrument = instrument
-
-		users = users
-		networker.thisUser = thisUser // OOPS
 	},
 
 
@@ -240,6 +173,12 @@ reverb.generate().then(() => {
 
 
 	<PingTime socket={socket} onchange={(s) => networker.pingTime =s} />
+
+	<Keyboard onemit={(...args) => {
+		if(thisUser.channel_id!=null) {
+			networker.run(...args)
+		}
+	}} />
 </div>
 
 <style>

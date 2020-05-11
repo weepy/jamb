@@ -47,7 +47,7 @@ const Presets = [
     
     },
     {
-        name:"Drums: Atlanta",
+        name:"Atlanta",
         samples: {
 
             "C3" : "kick.ogg",
@@ -70,7 +70,7 @@ const Presets = [
         }
     },
     {
-        name:"Drums: Choco",
+        name:"Choco",
         samples: {
 
             "C3" : "kick.ogg",
@@ -90,6 +90,48 @@ const Presets = [
         options: {
             "release" : 1,
             "baseUrl" : "./audio/drm/choco/"
+        }
+    },
+    {
+        name:"Chicago",
+        samples: {
+
+            "C3" : "kick.ogg",
+            "C#3" : "kick2.ogg",
+            "D3" : "hat_c.ogg",
+            "D#3" : "hat_o.ogg",
+            "E3" : "snare.ogg",
+            "F3" : "snare2.ogg",
+            "F#3" : "perc1.ogg",
+            "G3" : "perc2.ogg",
+            "G#3" : "tom1.ogg",
+            "A3" : "tom2.ogg",
+            "A#3" : "crash.ogg",
+            // "B3" : "ride.ogg",
+            
+        }, 
+        options: {
+            "release" : 1,
+            "baseUrl" : "./audio/drm/chicago/"
+        }
+    },
+    {
+        name:"Rhodes",
+        samples: {
+            
+            "A0" : "a0.ogg",
+
+            "A2" : "a2.ogg",
+
+            "D3" : "d3.ogg",
+
+            "e1" : "e1.ogg",
+        
+            
+        },
+        options: {
+            "release" : 2,
+            "baseUrl" : "./audio/rhodes/"
         }
     }
 ]

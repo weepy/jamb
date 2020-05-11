@@ -117,12 +117,14 @@ let midiInput
 		if(midiInput) {
 			midiInput.addListener('noteon', "all", (e) => {
 				const key = e.note.name + e.note.octave
-				networker.run('noteon', {key, velocity: e.velocity*0.85+0.15})
+				if(thisUser.channel_id)
+					networker.run('noteon', {key, velocity: e.velocity*0.85+0.15})
 			})
 
 			midiInput.addListener('noteoff', "all", (e) => {
 				const key = e.note.name + e.note.octave
-				networker.run('noteoff', {key})
+				if(thisUser.channel_id)
+					networker.run('noteoff', {key})
 			})
 		}
 

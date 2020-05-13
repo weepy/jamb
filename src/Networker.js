@@ -3,7 +3,7 @@ import _debug from 'debug'
 const debug = _debug('networker')
 
 const localActions = {
-	noteon:1, noteoff:1, loadpreset:1
+	noteon:1, noteoff:1, loadinstr:1
 }
 
 
@@ -28,15 +28,15 @@ class Networker {
 
 	addAction(action) {
 		
-		this.socket.on(action, (arg, channel_id) => {
+		this.socket.on(action, (arg, uid) => {
 			
-			debug("receive", action, arg, channel_id)
+			debug("receive", action, arg, uid)
 			// IGNORE KEY EVENT IF ITS ME
-			if(localActions[action] && !localStorage.nolocalSend && channel_id == this.thisUser.channel_id) {
+			if(localActions[action] && !localStorage.nolocalSend && uid == this.thisUser.uid) {
 				return
 			}
 
-			this.actions[action](arg, channel_id)
+			this.actions[action](arg, uid)
 		})
 	}
 
@@ -45,7 +45,7 @@ class Networker {
 		debug("emit", action, arg)
 		this.socket.emit(action, arg, this.mockdelay())
 		
-		const channel_id = this.thisUser.channel_id
+		const uid = this.thisUser.uid
 		
 		
 		if(localStorage.nolocalSend) {
@@ -55,7 +55,7 @@ class Networker {
 		// MB RUN LOCALLY
 		if(localActions[action]) {
 			setTimeout(() => {
-				this.actions[action](arg, channel_id)
+				this.actions[action](arg, uid)
 			}, this.pingTime)
 		}
 	}

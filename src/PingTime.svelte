@@ -3,7 +3,12 @@ import {onMount} from 'svelte'
 
 let smoothedPingTime = 10
 export let socket
+export let smoothedServerNow = null
 export let onchange = () => { }
+
+let smooth = 0.8
+
+let deltaWithServer= 0
 
 function mockdelay() {
 	const d = parseFloat(localStorage.delay)||0
@@ -11,22 +16,43 @@ function mockdelay() {
 	return d * (1+j*(Math.random()-0.5))
 }
 
+$: {
+    // console.log("delta servetime", smoothedServerNow - lastSmooth, smoothedPingTime)
+}
 
 onMount(() => {
     const timer = setInterval(() => {
         
         if(socket.connected) {
 
-            socket.emit('_ping', Date.now(), (date) => {	
+            socket.emit('_ping', Date.now(), (date, serverNow) => {	
                 let pingTime = Date.now() - date + mockdelay()
                 
-                if(pingTime > 200) {
-                    pingTime = 200
+                
+
+                smoothedPingTime = (smoothedPingTime)*smooth + Math.min(pingTime,200)*(1-smooth)
+
+                
+                const estimateServerNow = serverNow + pingTime/2
+
+                if(smoothedServerNow == null) {
+                    smoothedServerNow = estimateServerNow
                 }
-                smoothedPingTime = (smoothedPingTime)*0.8 + pingTime*0.2
+                else {
+                    // smooth = 0.8
+                    smoothedServerNow += 1000
+                    const s = (smoothedServerNow) * smooth + estimateServerNow*(1-smooth)
+
+                    console.log(s-smoothedServerNow, smoothedPingTime)
+
+                    smoothedServerNow = s
+                    
+                    deltaWithServer = Date.now() - smoothedServerNow
+
+                }
 
 
-                onchange(smoothedPingTime)
+                onchange(smoothedPingTime, smoothedServerNow)
             })
         }
 
@@ -37,6 +63,9 @@ onMount(() => {
     }
 })
 
+window.estimateServerNow = () => {
+    return Date.now() - deltaWithServer
+}
 
 </script>
 

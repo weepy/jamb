@@ -15,78 +15,81 @@ http.listen(1234, () => {
   console.log('listening on *:1234');
 });
 
-let g_channel_id = 0
+let g_user_id = 0
 
-let users = []
+let users = {}
 
-
+const startedAt = Date.now()
 
 io.on('connection', (socket) => {
     
     console.log("connected!")
   
-    let channel_id
+    let user
 
     socket.on('enter', (fn) => {
         socket.emit('enter', users)
-
+        console.log(users)
     })
 
-    socket.on('join', ({nick, instrumentType}) => {
-        channel_id = g_channel_id++
-        const user = {nick, channel_id, instrumentType}
-        socket.user = user
-        users.push(user)
+    socket.on('join', ({nick}) => {
+        const uid = g_user_id++
+        user = {nick, uid}
         
-        
-        io.emit('join', socket.user, channel_id)
-    })
+        users[uid] = user
 
-
-    socket.on('chat', ({text}) => {
+        socket.on('chat', ({text}) => {
       
-      io.emit('chat', {text, nick: socket.user.nick}, channel_id)
+          io.emit('chat', {text, nick: user.nick}, user.uid)
+        })
+    
+        socket.on('noteon', (x, delay) => {
+    
+          
+          
+          setTimeout(() => {
+            io.emit('noteon', x, user.uid)
+          }, parseInt(delay)||0)
+        })
+    
+        socket.on('noteoff', (x, delay) => {
+    
+          setTimeout(() => {
+            io.emit('noteoff', x, user.uid)
+          }, parseInt(delay)||0)
+        })
+    
+        socket.on('loadinstr', (instr, delay) => {
+          
+          
+          user.instr = instr
+          setTimeout(() => {
+            io.emit('loadinstr', instr, user.uid)
+          }, parseInt(delay)||0)
+        })
+
+
+
+        io.emit('join', user, user.uid)
     })
 
-    socket.on('noteon', (x, delay) => {
-
-      setTimeout(() => {
-        io.emit('noteon', x, channel_id)
-      }, parseInt(delay)||0)
-    })
-
-    socket.on('noteoff', (x, delay) => {
-
-      setTimeout(() => {
-        io.emit('noteoff', x, channel_id)
-      }, parseInt(delay)||0)
-    })
-
-    socket.on('loadpreset', (x, delay) => {
-
-      
 
 
-      setTimeout(() => {
-        
-        io.emit('loadpreset', x, channel_id)
-      }, parseInt(delay)||0)
-    })
 
 
 
     socket.on('_ping', (x, fn) => {
-      fn(x)
+      fn( x, Date.now() - startedAt )
     })
 
     socket.on('disconnect', (x) => {
-      
+    
+    
+      if(user) {
+        delete users[user.uid]
 
-      users = users.filter(u => socket.user != u)
-
-      if(socket.user) {
-          console.log('disconnected: ' + socket.user)
-          io.emit('disconnected', socket.user)
+        console.log('disconnected: ' + user)
+        io.emit('disconnected', user)
       }
     })
 })

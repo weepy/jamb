@@ -23,5 +23,5 @@ function next(e) {
 </script>
 
 <div>
-    <button on:click={prev}>&lArr;</button>{currentPreset.name}<button on:click={next}>&rArr;</button>
+    <button on:click={prev}>◀</button><button on:click={next}>▶</button>
 </div>

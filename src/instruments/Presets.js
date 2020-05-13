@@ -46,7 +46,34 @@ const Presets = [
         }
     
     },
+    
     {
+        name:"Rhodes",
+        samples: {
+            
+            "A0" : "a0.ogg",
+
+            "A2" : "a2.ogg",
+
+            "D3" : "d3.ogg",
+
+            "e1" : "e1.ogg",
+        
+            
+        },
+        options: {
+            "release" : 2,
+            "baseUrl" : "./audio/rhodes/"
+        }
+    }
+]
+
+export default Presets
+
+
+/* DRUMS 
+
+{
         name:"Atlanta",
         samples: {
 
@@ -115,25 +142,5 @@ const Presets = [
             "baseUrl" : "./audio/drm/chicago/"
         }
     },
-    {
-        name:"Rhodes",
-        samples: {
-            
-            "A0" : "a0.ogg",
 
-            "A2" : "a2.ogg",
-
-            "D3" : "d3.ogg",
-
-            "e1" : "e1.ogg",
-        
-            
-        },
-        options: {
-            "release" : 2,
-            "baseUrl" : "./audio/rhodes/"
-        }
-    }
-]
-
-export default Presets
+    */

@@ -15,7 +15,7 @@ class Sampler {
             this.gen.connect(downstream)
     }
 
-    async loadpreset(preset) {
+    async load(preset) {
         
         this.loading.set(true)
 
@@ -33,13 +33,15 @@ class Sampler {
         }
 
         this.gen = new Tone.Sampler(preset.samples, preset.options)
-
-        this.connect(this.downstream)
+        this.gen.toMaster()
+        
+        if(this.downstream)
+            this.connect(this.downstream)
 
     }
 
     noteon({key, velocity}) {
-        
+        // const s = window.master.secsToNextTick()
         this.gen.triggerAttack(key, "+0", velocity)
     }
 
@@ -47,6 +49,9 @@ class Sampler {
         this.gen.triggerRelease(key)
     }
 
+    noteplay({key, velocity=0.7, duration}) {
+        this.gen.triggerAttackRelease(key, duration, "+0" , velocity)
+    }
 }
 
 

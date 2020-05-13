@@ -96,6 +96,7 @@ const actions = {
 
 	disconnected(user, uid) {
 		delete users[uid]
+		users = users
 	}
 	
 }
@@ -178,7 +179,7 @@ reverb.generate().then(() => {
 
 
 		<Backbeat timeNow={timeNow} />
-		
+
 		<Chat socket={socket}/>
 	{/if}
 

@@ -43,7 +43,7 @@ onMount(() => {
                     smoothedServerNow += 1000
                     const s = (smoothedServerNow) * smooth + estimateServerNow*(1-smooth)
 
-                    console.log(s-smoothedServerNow, smoothedPingTime)
+                    // console.log(s-smoothedServerNow, smoothedPingTime)
 
                     smoothedServerNow = s
                     

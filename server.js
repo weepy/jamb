@@ -89,7 +89,7 @@ io.on('connection', (socket) => {
         delete users[user.uid]
 
         console.log('disconnected: ' + user)
-        io.emit('disconnected', user)
+        io.emit('disconnected', user, user.uid)
       }
     })
 })

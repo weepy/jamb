@@ -115,9 +115,7 @@ let midiInput
     	console.log(WebMidi.inputs);
 		console.log(WebMidi.outputs);
 		
-		midiInput = WebMidi.inputs[0]
-
-		if(midiInput) {
+		WebMidi.inputs.forEach(midiInput => {
 			midiInput.addListener('noteon', "all", (e) => {
 				const key = e.note.name + e.note.octave
 				if(thisUser.uid)
@@ -129,7 +127,8 @@ let midiInput
 				if(thisUser.uid)
 					networker.run('noteoff', {key})
 			})
-		}
+		})
+		
 
 	})
 }

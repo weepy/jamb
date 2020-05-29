@@ -1,5 +1,8 @@
 <script>
-export let onemit= ()=>{}
+export let onkeydown= ()=>{}
+export let onkeyup= ()=>{}
+export let onkey=()=>{}
+
 import { onMount } from 'svelte'
 onMount(() => {
 
@@ -31,7 +34,7 @@ onMount(() => {
 			const key = getKeyFromChar(ch)
 			
 			if(key) {
-				onemit('noteon', {key, velocity: 0.7})
+				onkeydown(key)
 				
 			}
 		}
@@ -49,7 +52,7 @@ onMount(() => {
 
 
 		if(key) {
-			onemit('noteoff', {key})
+			onkeyup(key)
 		}
 
 		if(ch == "Z") {
@@ -60,6 +63,9 @@ onMount(() => {
 			octave++
 			if(octave > 5) octave = 5
 		}
+
+
+		onkey(ch, e.keyCode)
 	})
 
 })

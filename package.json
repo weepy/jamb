@@ -18,12 +18,16 @@
   "dependencies": {
     "cors": "^2.8.5",
     "debug": "^4.1.1",
+    "expect.js": "^0.3.1",
     "express": "^4.17.1",
     "global": "^4.4.0",
+    "mocha": "^7.1.2",
+    "page": "^1.11.6",
     "sirv": "^0.4.2",
     "sirv-cli": "^0.4.4",
     "socket.io": "^2.3.0",
     "soundfont-player": "^0.12.0",
+    "svelte-router-spa": "^5.6.0",
     "tone": "^13.8.25"
   }
 }

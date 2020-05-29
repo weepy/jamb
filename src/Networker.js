@@ -42,7 +42,7 @@ class Networker {
 
 	run(action, arg) {
 		
-		debug("emit", action, arg)
+		// debug("emit", action, arg)
 		this.socket.emit(action, arg, this.mockdelay())
 		
 		const uid = this.thisUser.uid

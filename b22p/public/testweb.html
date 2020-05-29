@@ -1,0 +1,333 @@
+<script>
+const audioBuffers = {}
+const BufferLoader = (audioCtx, url) => {
+
+    if(audioBuffers[url]) {
+        return Promise.resolve(audioBuffers[url])
+    }
+
+    return fetch(url)
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error("HTTP error, status = " + response.status);
+        }
+        return response.arrayBuffer();
+      })
+      .then(function(data) {
+
+        
+        return new Promise((res, rej) => {
+            audioCtx.decodeAudioData(data, (buffer) => {
+                audioBuffers[url] = buffer
+                res(buffer)
+            }, () => {
+                audioBuffers[url] = false
+                rej()   
+            })
+        })
+      })
+}
+
+
+
+
+</script>
+<script src="tuna.js"></script>
+
+<script>
+    let context
+    let tuna
+    const loops = []
+
+    
+    function copyBufferWithDuration(buf, dur) {
+
+        const sampleRate = buf.sampleRate
+        const numberOfChannels = buf.numberOfChannels
+        const length = dur * sampleRate;
+
+        const buf2 = new AudioBuffer({length, numberOfChannels, sampleRate })
+        
+        for (var ch = 0; ch < numberOfChannels; ch++) {
+            buf2.copyToChannel(buf.getChannelData(ch), ch, 0)
+        }
+
+        return buf2
+    }
+
+    function round2(x) {
+        return Math.pow(2, Math.round(Math.log(x)/Math.log(2)))
+    }
+
+    const assets = [
+        {url: "/audio/loops/Kit_Drums_MixDown1_C_120BPM.wav"},
+        {url:  "/audio/loops/Kit_PianoHigh_C_120BPM.wav"},
+        {url:  "/audio/loops/hat_c.ogg"},
+        {url:  "/audio/loops/51_XIV 120BPM Csmin Sample.wav",gain:0.5},
+    ]
+
+    
+    const bpm = 120
+
+    function barLength2( secs ) {
+        const secsPerBar = 240/bpm
+        return round2( secs / secsPerBar ) * secsPerBar
+    }
+
+    function findSync(currentTime){
+        let origin = null
+
+        const startTimes = loops.map(l => l.startedAt).filter(l => l > 0)
+        startTimes.forEach(t => {
+            if (t < origin || origin == null)
+                origin = t  
+        })
+
+        if(origin == null) {
+            return 0
+        }
+        else {
+            return currentTime - origin
+        }
+
+    }
+
+    
+
+    class Loop {
+        constructor(o, context) {
+            this.context = context
+            
+            
+            this.url = o.url
+            this.loop = true
+            this.offset = 0
+            this.gainNode = context.createGain()
+            
+            console.log(o)
+            // this.load(this.url)
+            this.set(o)
+        }
+
+        connect(destination) {
+            this.gainNode.connect(destination)
+        }
+
+        set(o) {
+            
+            for(var i in o) {
+                if(i == 'gain') {
+                    this.gainNode.gain.value = o.gain
+                }              
+                if(i == 'url') {
+                    this.url = o.url
+                    this.ready = BufferLoader(this.context, this.url).then(buffer => {
+
+                        this.originalSourceDuration = buffer.duration
+
+                        if(this.loopLength == null) {
+                            this.loopLength = Math.max(1, round2(buffer.duration))
+                        }
+                        
+                        if(this.loopLength > buffer.duration) {
+                            buffer = copyBufferWithDuration(buffer, this.loopLength)
+                        }
+
+
+
+
+                        this.buffer = buffer
+                        
+                    })
+                }
+
+                else {
+                    this[i] = o[i]
+                }         
+            }            
+            
+        }
+
+        load() {
+            
+        }
+
+
+        start() {
+            this.source = context.createBufferSource()
+            this.source.buffer = this.buffer
+            this.source.loop = this.loop
+            this.source.connect(this.gainNode)
+            
+            const currentTime = this.context.currentTime
+            
+            
+            
+            console.log("loopLength", this.loopLength)
+            const offset = findSync(currentTime - this.offset) % this.loopLength
+            // console.log(origin, "origin")
+            // const offset =  //(findSync(currentTime) - this.offset) % this.loopLength
+
+            this.source.loopStart = 0
+            this.source.loopEnd = this.loopLength
+
+            this.source.start(0, offset)
+            this.playing = true
+            this.startedAt = currentTime
+
+            // this.source.addEventListener('ended', () => {
+            //     console.log('ended')
+            // })
+        }
+
+        stop() {
+            this.source.stop()
+            this.playing = false
+        }
+
+        toggle() {
+            if(this.playing) {
+                this.stop()
+                this.startedAt = 0
+            }
+            else {
+                this.start()
+            }
+        }    
+    }
+
+    
+    let delay
+    
+    function initAudio() {
+        if(!context) {
+            context = new AudioContext()
+            tuna = new Tuna(context)
+            delay = new tuna.Delay({
+                feedback: 0.2,
+                delay: 0.0045,
+                bypass: 0
+            })
+
+            delay.connect(context.destination)
+        }
+    }
+    initAudio()
+
+
+    function toggle(num) {
+        initAudio()
+        
+        const loop = loops[num] = loops[num] || new Loop(assets[num], context)
+
+        loop.connect(delay)
+        
+        loop.ready.then(() => {
+            
+            loop.toggle()
+        })
+    }
+
+    
+    const recordAudio = () => {
+        return new Promise(resolve => {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                const mediaRecorder = new MediaRecorder(stream);
+                const audioChunks = [];
+
+                mediaRecorder.addEventListener("dataavailable", event => {
+                    
+                    audioChunks.push(event.data);
+                });
+
+                let recordStartedAt
+                const start = () => {
+                    
+
+                    mediaRecorder.start();
+                    recordStartedAt = context.currentTime
+                };
+
+                const stop = () => {
+                    return new Promise(resolve => {
+                        mediaRecorder.addEventListener("stop", () => {
+                            const blob = new Blob(audioChunks)
+                            const url = URL.createObjectURL(blob)
+                            const duration = context.currentTime - recordStartedAt
+                            resolve({ blob, url, recordStartedAt, duration });
+                        });
+
+                       mediaRecorder.stop();
+                    });
+                };
+
+                resolve({ start, stop });
+            });
+        });
+    };
+
+    let recorder
+    
+    
+    async function toggleRecord() {
+        initAudio()
+
+        if(recorder){
+            const { url, recordStartedAt, blob,duration } = await recorder.stop();
+            
+          
+            const loopLength = Math.max(1, barLength2( duration ))
+            
+            const offset = recordStartedAt - Math.floor(recordStartedAt/loopLength)*loopLength
+
+            // const loopLength = blob.length
+            const loop = new Loop({url, offset, loopLength}, context)
+            loop.connect(delay)        
+            loop.ready.then(() => {
+                
+                loop.toggle()
+            })
+            
+            recorder = null            
+        }
+        else {
+            recorder = await recordAudio();
+            recorder.start();
+        }
+
+        // if(mediaRecorder) {
+        //     mediaRecorder.stop();
+        // }
+        // else {
+        //     navigator.mediaDevices.getUserMedia({ audio: true })
+        //         .then(stream => {
+        //             const mediaRecorder = new MediaRecorder(stream);
+        //             mediaRecorder.start();
+        //             const audioChunks = [];
+
+        //             mediaRecorder.addEventListener("dataavailable", event => {
+        //                 console.log("adding data")
+        //                 audioChunks.push(event.data);
+        //             });
+
+        //             mediaRecorder.addEventListener("stop", () => {
+        //               const audioBlob = new Blob(audioChunks);
+        //               const audioUrl = URL.createObjectURL(audioBlob);
+                    
+        //               const audio = new Audio(audioUrl);
+        //                 audio.play();
+        //               mediaRecorder = null
+        //             });
+        //         });
+        // }
+    }
+
+</script>
+
+<button onclick="toggle(0)">toggle A</button>
+<button onclick="toggle(1)">toggle B</button>
+<button onclick="toggle(2)">toggle C</button>
+<button onclick="toggle(3)">toggle D</button>
+
+<button onclick="toggleRecord()">Record</button>

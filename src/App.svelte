@@ -13,9 +13,17 @@ import {onMount} from 'svelte'
 import UserAvatar from './UserAvatar.svelte'
 import Networker from './Networker.js'
 import Keyboard from './Keyboard.svelte'
+import Master from './Master.js'
+import Timeline from './Timeline.js'
 
 
-let timeNow = 0
+import Backbeat from './Backbeat.svelte'
+
+
+let reverb
+let master
+
+
 
 let networker
 const instruments = {}
@@ -102,11 +110,97 @@ const actions = {
 }
 
 
-networker = new Networker(socket, actions, thisUser)
+class UserInteractionHandler {
+
+	constructor() {
+		this.activeNotes = {}
+		this.history = []
+
+	}
+
+	noteon({key, velocity}) {
+		if(thisUser.uid==null) {
+			return
+		}
+
+		networker.run('noteon', { key })
 
 
+		const time = master.now()
+
+		const note = this.activeNotes[key]
+		if(note) {
+			console.warn('existing note at key', key)
+		}
+		console.log({key, time})
+		this.activeNotes[key] = {key, time, velocity }
+	}
+
+	noteoff({key}) {
+		if(thisUser.uid==null) {
+			return
+		}
+		
+		const note = this.activeNotes[key]
+		if(!note) {
+			console.warn('no existing note at key', key)
+			return
+		}
+
+		const time = master.now()
+		note.length = time - note.time
+		networker.run('noteoff', { key, time })
+
+		this.history.push(note)
+		delete this.activeNotes[key]
+	}
+
+	findRecentNotes(length) {
+
+		const time = master.now()
+
+		const recentNotes = this.history.filter((n) => {
+			const age = time - n.time
+			return age <= length
+		}) 
+
+		return {
+			notes: recentNotes,
+			loopLength: length
+		}
+		
+		
+	}
+}
+
+let userInteractions = new UserInteractionHandler()
+
+
+function quantize(s, x=1) {
+	s.notes.forEach(n => {
+		n.time = Math.round(n.time/x)*x
+	})
+}
+
+function createLoop(bars) {
+	const s = userInteractions.findRecentNotes(16*bars)
+
+	quantize(s, 1)
+	console.log(s)
+
+	if(s.notes.length == 0) {
+		return
+	}
+
+	const timeline = new Timeline()
+
+	timeline.instrument = instruments[thisUser.uid]
 	
+    timeline.setScore( s  )
+    timeline.start() 
 
+    master.addTimeline(timeline)
+}
 
 let midiInput
 // START MIDI
@@ -118,14 +212,13 @@ let midiInput
 		WebMidi.inputs.forEach(midiInput => {
 			midiInput.addListener('noteon', "all", (e) => {
 				const key = e.note.name + e.note.octave
-				if(thisUser.uid)
-					networker.run('noteon', {key, velocity: e.velocity*0.85+0.15})
+				
+					userInteractions.noteon( {key, velocity: e.velocity*0.85+0.15})
 			})
 
 			midiInput.addListener('noteoff', "all", (e) => {
 				const key = e.note.name + e.note.octave
-				if(thisUser.uid)
-					networker.run('noteoff', {key})
+				userInteractions.noteoff({key})
 			})
 		})
 		
@@ -148,16 +241,30 @@ function enter() {
 
 
 
-import Backbeat from './Backbeat.svelte'
+
+const round2 = (x) => Math.pow(2, Math.round(Math.log(x)/Math.log(2)))
+
+onMount(() => {
+
+	networker = new Networker(socket, actions, thisUser)
 
 
-var reverb = new Tone.Reverb({wet: 0.2, decay: 7}).toMaster();
-reverb.generate().then(() => {
-	console.log("Reverb is ready")
-});
+	reverb = new Tone.Reverb({wet: 0.2, decay: 7}).toMaster();
+	reverb.generate().then(() => {
+		console.log("Reverb is ready")
+	});
+
+	master = new Master({bpm:120})
+
+	setInterval(() => {
+		master.update()
+	}, 16) 
 
 
+})
 
+
+let recordStart
 
 </script>
 <div class='wrapper' on:keyup|stopPropagation on:keydown|stopPropagation>
@@ -177,21 +284,53 @@ reverb.generate().then(() => {
 		}} />
 
 
-		<Backbeat timeNow={timeNow} />
+		<Backbeat master={master} />
 
+		<!-- <button on:click={()=>createLoop(1)}>1</button>
+		<button on:click={()=>createLoop(2)}>2</button>
+		<button on:click={()=>createLoop(4)}>4</button>
+		<button on:click={()=>createLoop(8)}>8</button> -->
 		<Chat socket={socket}/>
 	{/if}
 
 	
-	<PingTime socket={socket} onchange={(_pingTime, _timeNow) =>  {
+	<PingTime socket={socket} onchange={(_pingTime) =>  {
 		networker.pingTime = _pingTime
-		timeNow = _timeNow
+		
 	}} />
 
-	<Keyboard onemit={(...args) => {
-		if(thisUser.uid!=null) {
-			networker.run(...args)
-		}
+	<Keyboard onkeydown={key => {
+			userInteractions.noteon({key, velocity:0.7 })
+		}}
+
+		onkeyup={key => {
+			userInteractions.noteoff({key})
+		}}
+
+		onkey={ (key, code) => {
+			
+			if(code == 13) {
+				if(recordStart) {
+
+					const ticks = master.now() - recordStart
+					const bars = Math.max(1, round2(ticks/16))
+					
+					createLoop(bars)
+					recordStart = null
+
+
+				}
+				else {
+					recordStart = master.now()
+				}
+
+				
+			}
+			else {
+				console.log("unhandled key: ", key, code)
+			}
+		}}
+
 	}} />
 
 	

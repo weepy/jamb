@@ -64,7 +64,7 @@ onMount(() => {
 })
 
 window.estimateServerNow = () => {
-    return Date.now() - deltaWithServer
+    return Date.now()// - deltaWithServer
 }
 
 </script>

@@ -28,7 +28,6 @@ class LoopController {
     toggleLoop(loop) {
         return loop.ready.then(() => {  
             
-
             if(loop.playing) {
                 loop.stop()    
             }
@@ -37,7 +36,7 @@ class LoopController {
                 const currentTime = this.context.currentTime
 
                 const { loopLength, offset } = loop
-
+                
                 const startOffset = mod(currentTime - origin - offset, loopLength)
 
 

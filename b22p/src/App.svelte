@@ -69,12 +69,11 @@
 				const offset = (sigStart - origin)%loopLength
 
 				const loop = loopController.createLoop({ url, loopLength, trimStart, offset })
-				loopController.toggleLoop(loop)
+				await loopController.toggleLoop(loop)
 				loopController.loops = loopController.loops
 			}
 		}
-
-			
+	
 	}
 </script>
 

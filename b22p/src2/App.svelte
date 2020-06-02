@@ -1,5 +1,5 @@
 <script>
-import EntityBase from './shared/EntityBase.js'
+import BaseEntity from './shared/BaseEntity.js'
 import Networker from './Networker.js'
 import Project from './shared/Project.js'
 import ClientFactory from './ClientFactory.js'

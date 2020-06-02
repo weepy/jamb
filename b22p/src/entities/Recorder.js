@@ -1,4 +1,6 @@
-import { barLength2, recordAudio, monitorLevels} from '../utils.js'
+import { barLength2, recordAudio1, recordAudio2, monitorLevels} from '../utils/utils.js'
+
+
 
 function twosf(o) {
     for(var i in o ) {
@@ -30,7 +32,7 @@ class Recorder {
     async complete(bpm) {
 
         
-        const { url, blob } = await this.recordPromise.stop()
+        const { buffer } = await this.recordPromise.stop()
 
         // this.doneMetering()
 
@@ -50,13 +52,18 @@ class Recorder {
         
         
         console.log(twosf({recStart, sigStart, currentTime, loopLength, duration, trimStart }))
-        return { url, trimStart, sigStart, loopLength, currentTime, duration, loopLength  }
+        const loop = this.loop
+        this.loop = null
+        return { buffer, trimStart, sigStart, loopLength, currentTime, duration, loopLength, loop  }
   
     }
     
 
 
-    async prime() {
+    async prime( loop ) {
+
+        this.loop = loop
+        
         this.state = "primed"
         this.onchangestate(this.state)
 
@@ -77,8 +84,8 @@ class Recorder {
             this.level = smoothedDb
             this.onchangelevel(this.level)
         }
-
-        this.recordPromise = await recordAudio(this.device||{}, handleMetering)
+        
+        this.recordPromise = await recordAudio2(this.device||{}, handleMetering)
         this.recordStartedAt = this.context.currentTime
         this.recordPromise.start()
 

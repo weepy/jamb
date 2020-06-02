@@ -5,14 +5,16 @@ export let state = "stopped"
 export let level = 0.3
 
 </script>
-<button class={state} on:click={() => onclick()}>Record</button>
+
 
 {#if  state != "stopped"}
-	
+
+	<div class={state}>Recording</div>
+		
 	<button class="cancel" on:click={() => onclick("cancel")}>Cancel</button>
 	<br/>
 	<div class="monitor">
-		<div style="width: {level*100}%"></div>
+		<div style="width: {level*100*10}%"></div>
 	</div>
 	<br/>
 {/if}

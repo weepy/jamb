@@ -1,44 +1,54 @@
-import {loadBuffer,round2,copyBufferWithDuration } from '../utils.js'
+import {loadBuffer,round2,copyBufferWithDuration } from '../utils/utils.js'
 function twosf(o) {
     for(var i in o ) {
         o[i] = Math.floor(o[i]*10)/10
     }
     return o
 }
+
+const Props = ["id", 
+    "row" , "column", "loopLength", "url", "playing", "recording", "trimStart", "offset", 
+    "loop", "gain", "subgain"]
+
 class Loop {
-    constructor(o, context) {
-        this.context = context
+    constructor(o, project) {
+        this.project = project
         
+        this.context = project.context
         
-        this.url = o.url
+        // set defaults
         this.loop = true
         this.trimStart = 0
-        this.offset = o.offset || 0
+        this.offset = 0
 
-        this.gainNode = context.createGain()
+        this.output = this.context.createGain()
+        this.project.connect(this.output, "mainmix")
+
+        this.suboutput = this.context.createGain()
+        this.output.connect(this.suboutput)
+
+        this.project.connect(this.suboutput, "submix")
         
-        console.log(o)
-        // this.load(this.url)
         this.set(o)
     }
 
-    connect(destination) {
-        this.gainNode.connect(destination)
-    }
 
     set(o) {
         
 
-        for(var i in o) {
-            if(i == 'gain') {
-                this.gainNode.gain.value = o.gain
-            }              
-            else {
-                this[i] = o[i]
-            }         
+        for(var key in o) {
+            this[key] = o[key]
         }       
+
+        if('gain' in o) {        
+            this.output.gain.value = this.gain
+        }              
+
+        if('subgain' in o) {
+            this.suboutput.gain.value = this.subgain
+        }
         
-        if(o.url) {
+        if('url' in o) {
             this.ready = loadBuffer(this.url, this.context).then(buffer => {
 
                 this.originalSourceDuration = buffer.duration
@@ -47,39 +57,67 @@ class Loop {
                     this.loopLength = Math.max(1, round2(buffer.duration))
                 }
                 
-                if(this.loopLength +this.trimStart> buffer.duration) {
+                if(this.loopLength +this.trimStart > buffer.duration) {
                     buffer = copyBufferWithDuration(buffer, this.loopLength+this.trimStart)
                 }
-    
+                
                 this.buffer = buffer
+
+                if(this.playing) {
+                    const startOffset = this.project.calcStartOffset(this)
+                    this.start(startOffset)
+                }
                 
             })
+        }
+
+        if(o.buffer) {
+            if(this.loopLength +this.trimStart > this.buffer.duration) {
+                this.buffer = copyBufferWithDuration(this.buffer, this.loopLength+this.trimStart)
+            }
+            this.ready = Promise.resolve(true)
+        }
+        
+        if(o.playing) {
+            const startOffset = this.project.calcStartOffset(this)
+            this.start(startOffset)
+        }
+        
+        if(o.playing == false) {
+            this.stop()
         }
         
     }
 
-    load() {
+    toJSON() {
+        const o = {}
         
+        Props.forEach(p  => {
+            if(p in this)  
+                o[p] = this[p]
+        })
+
+        return o
     }
 
-
     start(startOffset) {
+
+        
         this.source = this.context.createBufferSource()
         this.source.buffer = this.buffer
         this.source.loop = this.loop
-        this.source.connect(this.gainNode)
+        this.source.connect(this.output)
         
         const currentTime = this.context.currentTime
         
         
-        
         this.source.loopStart = this.trimStart
         this.source.loopEnd =  this.trimStart + this.loopLength 
-        console.log( this.source.loopStart, this.source.loopEnd)
+        // console.log( this.source.loopStart, this.source.loopEnd)
         this.source.start(0, startOffset + this.trimStart)
         this.origin = currentTime - startOffset
 
-        this.playing = true
+        // this.playing = true
         // this.startedAt = currentTime
 
         console.log("loop", twosf({trimStart:this.trimStart}))
@@ -90,7 +128,8 @@ class Loop {
     }
 
     stop() {
-        this.source.stop()
+        if(this.source)
+            this.source.stop()
         this.playing = false
         this.origin = 0
     }

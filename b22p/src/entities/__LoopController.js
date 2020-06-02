@@ -21,7 +21,6 @@ class LoopController {
         this.loops.push(loop)
         
         loop.connect(this.context.destination)
-
         return loop
     }
     
@@ -64,7 +63,7 @@ class LoopController {
             return this.context.currentTime
         }
         else {
-            return origin//()
+            return origin
         }
         
     }

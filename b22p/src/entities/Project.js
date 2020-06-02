@@ -1,41 +1,99 @@
-const exampleProjectData = {
-    name: 'my project',
-    bpm: 120,
-    reverb: { },
+import Loop from './Loop.js'
+import Channel from './Channel.js'
 
-    loops: [
-        {
-            id:"a1s",
-            channel: 0,
-            url: "/audio/loops/Kit_Drums_MixDown1_C_120BPM.wav", 
-            gain:0.7
-        },
+const BaseProject = require('../shared/BaseProject.js')
+const BaseEntity = require('../shared/BaseEntity.js')
 
-        {url:  "/audio/loops/Kit_PianoHigh_C_120BPM.wav"},
-        {url:  "/audio/metro.wav"},
-        {url:  "/audio/loops/51_XIV 120BPM Csmin Sample.wav",gain:0.5},
-    ],
-    channels: [
-        {   
-            id: 0,
-            gain: 2,
-            reverb: 0.2,
-            effects: [
-                {id: 4, delay: 0.2},
-            ]
-        }
-    ],
-    users: [
-
-    ]
-	
+function mod(a, n) {
+    return ((a%n)+n)%n;
 }
 
-/* 
 
 
-    project.set("channels.0.effects.4", { data } ) .... 
-    project.set("channels.0.effects.4", { data } ) .... 
-    project.create("channels.0.effects.4", { data } ) .... 
+const Klasses = {
+    loops: Loop,
+    channels: Channel,
+    mix: Channel,
+    /////////
+    // meta: BaseEntity,
+    users: BaseEntity,
+    effects: BaseEntity,
+    chats: BaseEntity
+}
 
-*/
+// const KEYS = ["meta", "mix", "channels", "loops", "users", "chats"]
+
+
+class Project extends BaseProject {
+
+
+    _createEntity(key, data) {
+        return new Klasses[key](data, this)
+    }
+
+
+    calcStartOffset(loop) {
+        
+        let currentTime = this.context.currentTime
+
+        const origin = this.findOrigin(currentTime)
+
+        return mod(currentTime - origin - loop.offset, loop.loopLength)
+
+    }
+
+
+    connect( node , s ) {
+        let dest
+        
+        if(s == "destination")   
+            dest = this.context.destination
+        else if(s.match(/mix$/))
+            dest = this.mix[s].input
+        else 
+            dest = this.channels[s].input
+       
+        node.connect(dest)
+    }
+
+    findOrigin( currentTime ) {
+        
+        
+        let origin = currentTime
+
+        for(var i in this.loops) {
+            const loop = this.loops[i]
+            if(loop.origin > 0) {
+                if (loop.origin < origin)
+                    origin = loop.origin
+            }
+
+        }
+
+
+        return origin
+        
+    }
+
+    // set(...args, val) {
+    //     if(args.length == 1)
+    //         return super(args[0])
+
+    //     const o = {}
+    //     let node = o
+    //     while(args.length) {
+    //         const newNode = {}
+    //         node[args.shift()] = newNode
+    //         node = newNode
+    //     }
+
+
+
+        
+
+
+
+    // }
+}
+
+export default Project

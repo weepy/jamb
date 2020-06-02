@@ -1,3 +1,14 @@
+import axios from 'axios'
+import WavEncoder from '../utils/WavEncoder.js'
+
+function uuid(N) {
+    const s = []
+    for(var i =0; i<N;i++) {
+        s[i] = Math.random().toString(36)[2]
+    }
+    return s.join("")
+}
+
 function copyBufferWithDuration(buf, dur) {
 
     const sampleRate = buf.sampleRate
@@ -106,17 +117,16 @@ function monitorLevels({deviceId}, meteringCallback) {
 }
 
 
-function concatBuffers(buffers) {
+function AudioBufferFromBufferList(buffers) {
 
-    const buf = buffers[0]
-    const sampleRate = buf.sampleRate
-    const numberOfChannels = buf.numberOfChannels
+
+    const sampleRate = 44100
+    const numberOfChannels = 2
     let length = 0
 
     for (let i = 0; i < buffers.length; i++) {
         length += buffers[i].length
     }
-
 
     const out = new AudioBuffer({length, numberOfChannels, sampleRate })
 
@@ -124,12 +134,12 @@ function concatBuffers(buffers) {
     for (let i = 0; i < buffers.length; i++) {
         
     
-        const buf = buffers[i]
-        for (var ch = 0; ch < numberOfChannels; ch++) {
-            out.copyToChannel(buf.getChannelData(ch), ch, offset)
-        }
+        const b = buffers[i]
+        
+        out.copyToChannel(b[0], 0, offset)
+        out.copyToChannel(b[1], 1, offset)
 
-        offset += buf.length
+        offset += b.length
     }
 
     return out
@@ -152,7 +162,7 @@ function recordAudio1({deviceId}, meteringCallback) {
                 //// SETUP MONITORING
                 let context = new AudioContext()
                 const source = context.createMediaStreamSource(stream)
-                const processor = context.createScriptProcessor(1024, 1, 1)
+                const processor = context.createScriptProcessor(1024, 2, 2)
                 
                 source.connect(processor)
                 processor.connect(context.destination)
@@ -218,30 +228,45 @@ function recordAudio2({deviceId}, meteringCallback) {
                 //// SETUP MONITORING
                 let context = new AudioContext()
                 const source = context.createMediaStreamSource(stream)
-                const processor = context.createScriptProcessor(1024, 1, 1)
+                const processor = context.createScriptProcessor(1024, 2,2)
                 
+                // const encoder = new WavEncoder(44100, 2)    
+                // const encoder = new OggVorbisEncoder(44100, 2, 0.9)
+
                 source.connect(processor)
                 processor.connect(context.destination)
     
                 processor.onaudioprocess = function(e) {
                     const db = rmsBuffer(e.inputBuffer, 10)
                     meteringCallback(db)
-                    audioChunks.push(e.inputBuffer)
+
+                    audioChunks.push([
+                        e.inputBuffer.getChannelData(0).slice(),
+                        e.inputBuffer.getChannelData(1).slice()
+                    ])
+
+
+                    // const b = [e.inputBuffer.getChannelData(0),e.inputBuffer.getChannelData(1)]
+                    // encoder.encode(b)
+                    // audioChunks.push()
                 }
 
 
                 const stop = () => {
 
                     return new Promise(resolve => {
-
-                     
-                        const blob = new Blob(audioChunks)
-                        const url = URL.createObjectURL(blob)
                         
+
+                        // audioChunks.forEach( b => encoder.encode(b))
+                        
+                        // const audioBuffer 
+                        // const blob = encoder.finish()
+                        
+                        const buffer = AudioBufferFromBufferList(audioChinks)
                         context.close()
 
 
-                        resolve({ blob, url })
+                        resolve({ buffer })
                      
                     })
                 }
@@ -253,13 +278,44 @@ function recordAudio2({deviceId}, meteringCallback) {
     })  
 }
 
-let recordAudio = recordAudio1
+// let recordAudio = recordAudio1
+
+
+function uploadBlob({blob, projectId, filename}, uploadProgress=(x)=>{ console.log(x)}) {
+    var data = new FormData()
+	data.append('audioFile', blob, filename)
+
+	const re = /(?:\.([^.]+))?$/;
+    data.append('ext', re.exec(filename)[1])
+    
+    data.append('projectId', projectId)
+
+    return axios({
+		url: '/upload', 
+		method: 'post',
+		data: data,
+		onUploadProgress: function(e) {
+			uploadProgress(Math.min(99, Math.floor(e.loaded / e.total * 100)))
+		}
+	})
+	.then((e) => {
+        uploadProgress(100)
+        return e.data.filename
+	})
+	.catch(e => {
+
+		alert(e.toString())
+	})
+}
 
 export {
     round2,
     copyBufferWithDuration,
     barLength2,
     loadBuffer,
-    recordAudio,
-    monitorLevels
+    recordAudio1,
+    recordAudio2,
+    monitorLevels,
+    uploadBlob,
+    uuid
 }

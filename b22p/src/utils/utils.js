@@ -1,5 +1,6 @@
+
 import axios from 'axios'
-import WavEncoder from '../utils/WavEncoder.js'
+// import WavEncoder from '../utils/WavEncoder.js'
 
 function uuid(N) {
     const s = []
@@ -8,6 +9,15 @@ function uuid(N) {
     }
     return s.join("")
 }
+
+function isPlaying(loop, t) {
+    const s = loop.startAt||1e12
+    const e = loop.endAt ||1e12
+    
+    return t >= s && (t < e || e <= s)
+}
+
+
 
 function copyBufferWithDuration(buf, dur) {
 
@@ -117,39 +127,40 @@ function monitorLevels({deviceId}, meteringCallback) {
 }
 
 
-function AudioBufferFromBufferList(buffers) {
+function audioBufferFromBufferList(bufferList, sampleRate=44100, numberOfChannels=2) {
 
-
-    const sampleRate = 44100
-    const numberOfChannels = 2
     let length = 0
 
-    for (let i = 0; i < buffers.length; i++) {
-        length += buffers[i].length
+    for (let i = 0; i < bufferList.length; i++) {
+        length += bufferList[i][0].length
     }
 
     const out = new AudioBuffer({length, numberOfChannels, sampleRate })
 
     let offset = 0
-    for (let i = 0; i < buffers.length; i++) {
+    for (let i = 0; i < bufferList.length; i++) {
         
-    
-        const b = buffers[i]
+        const b = bufferList[i]
         
         out.copyToChannel(b[0], 0, offset)
         out.copyToChannel(b[1], 1, offset)
 
-        offset += b.length
+        offset += b[0].length
     }
 
     return out
-  }
+}
+
+
 
 
 function recordAudio1({deviceId}, meteringCallback) {
     
 
     const constraints = { audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
         deviceId: {exact: deviceId}
     }}
 
@@ -178,6 +189,9 @@ function recordAudio1({deviceId}, meteringCallback) {
                     audioBitsPerSecond : 256000,
                     mimeType : 'audio/webm'
                 })
+
+                
+
                 const audioChunks = []
 
                 mediaRecorder.addEventListener("dataavailable", event => {    
@@ -195,9 +209,9 @@ function recordAudio1({deviceId}, meteringCallback) {
 
                         mediaRecorder.addEventListener("stop", () => {
                             const blob = new Blob(audioChunks)
-                            const url = URL.createObjectURL(blob)
+                            // const url = URL.createObjectURL(blob)
                             
-                            resolve({ blob, url })
+                            resolve({ blob })
                         })
 
                         mediaRecorder.stop()
@@ -212,9 +226,14 @@ function recordAudio1({deviceId}, meteringCallback) {
     })  
 }
 
-function recordAudio2({deviceId}, meteringCallback) {
+
+
+function recordAudio2({deviceId}, chunkSize, meteringCallback) {
     
     const constraints = { audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
         deviceId: {exact: deviceId}
     }}
 
@@ -224,49 +243,47 @@ function recordAudio2({deviceId}, meteringCallback) {
         navigator.mediaDevices.getUserMedia(constraints)
             .then(stream => {
 
-                
                 //// SETUP MONITORING
                 let context = new AudioContext()
                 const source = context.createMediaStreamSource(stream)
-                const processor = context.createScriptProcessor(1024, 2,2)
+                const processor = context.createScriptProcessor(chunkSize, 2,2)
                 
-                // const encoder = new WavEncoder(44100, 2)    
-                // const encoder = new OggVorbisEncoder(44100, 2, 0.9)
+                
 
+                let audioChunks = []
                 source.connect(processor)
                 processor.connect(context.destination)
-    
+                
+                let started = false
                 processor.onaudioprocess = function(e) {
                     const db = rmsBuffer(e.inputBuffer, 10)
-                    meteringCallback(db)
+                    
+                    meteringCallback(db) 
+
+                    // const numChunks = 
+                    // if(numChunks ) {
+                    //     // should start?!
+                    //     audioChunks = audioChunks.slice(-numChunks) 
+                    //     started = true
+                    // }
 
                     audioChunks.push([
                         e.inputBuffer.getChannelData(0).slice(),
                         e.inputBuffer.getChannelData(1).slice()
                     ])
 
-
-                    // const b = [e.inputBuffer.getChannelData(0),e.inputBuffer.getChannelData(1)]
-                    // encoder.encode(b)
-                    // audioChunks.push()
                 }
 
 
                 const stop = () => {
 
-                    return new Promise(resolve => {
+                    return new Promise(async resolve => {
                         
 
-                        // audioChunks.forEach( b => encoder.encode(b))
+                        // const blob = await convertBuffersListToOgg(audioChunks)
                         
-                        // const audioBuffer 
-                        // const blob = encoder.finish()
-                        
-                        const buffer = AudioBufferFromBufferList(audioChinks)
                         context.close()
-
-
-                        resolve({ buffer })
+                        resolve({ audioChunks })
                      
                     })
                 }
@@ -308,14 +325,72 @@ function uploadBlob({blob, projectId, filename}, uploadProgress=(x)=>{ console.l
 	})
 }
 
+function merge(a, b) {
+
+    for(var i in b) {
+        if(typeof b[i] == "object") {
+            a[i] = a[i] || {}
+            merge(a[i], b[i])
+        }
+        else {
+            a[i] = b[i]
+        }
+    }
+    return a
+}
+
+
+
+
+import io from 'socket.io-client'
+
+
+// let error = Math.random()*100
+
+function now() {
+    return (Date.now()) / 1000
+}
+
+
+
+
+const socket = io()
+
+setInterval(()=> {
+    socket.emit("get_time", Date.now(), (sentAt, serverTime) => {
+        const now = Date.now()
+        
+        const roundTrip = now - sentAt
+        const serverTimeGuess = serverTime + roundTrip/2
+        const offset = serverTimeGuess - now
+        
+        // console.log(offset)
+    })
+}, 1000)
+
+
+function partition(a, fn) {
+    const ret = [[], []]
+    a.forEach(x => {
+        const bucket = ret[ fn(x)?0:1]
+        bucket.push(x)
+    })
+    return ret
+}
+
 export {
+    now,
+    partition,
+    merge,
     round2,
     copyBufferWithDuration,
+    audioBufferFromBufferList,
     barLength2,
     loadBuffer,
     recordAudio1,
     recordAudio2,
     monitorLevels,
     uploadBlob,
-    uuid
+    uuid,
+    isPlaying
 }

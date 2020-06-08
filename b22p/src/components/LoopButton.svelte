@@ -1,40 +1,66 @@
 <script>
 export let loop
+export let onselect = () => {}
+import { now, isPlaying } from '../utils/utils.js'
+import { recordState, recorderLoop } from '../store.js'
+
+
+// export let touching = false
+// export let recordState = ''
+export let selected = false
 export let onclick = () => {}
 
-function click() {
-	onclick(loop)
-}
+
+// function click() {
+	
+// }
 
 $: filename = loop.url ? loop.url.split("/").pop() : '-'
 	
-$: name =  loop.url ? "loop" : ""
-$: empty = !loop.url
+// $: name =  loop.url ? "loop" : ""
+$: empty = !loop.url && !loop.buffer
 
-$: playing = loop.playing
+$: playing = isPlaying(loop, now())
 $: x = 80*loop.channel + 30
 $: y = 80*loop.row + 30
-let touched = false
-$: recording = loop.recording
+// export let touched = false
+// $: recording = loop.recording
 
-function mousedown(e) {
-	touched = true
+
+
+function contextmenu() {
+	console.log("contextmenu")
 }
 
-function mouseup(e) {
-	touched = false
+function mouseover() {
+	onselect(loop)
 }
+
+function mousedown() {
+	setTimeout(() => {
+		onselect(loop)
+	},0)
+}
+
+function mouseout() {
+	if(store.mouseDownCount) {
+		console.log("exit")
+	}
+}
+
+
+$: className = $recorderLoop == loop ? $recordState : ""
 
 </script>
 <div 
-	class:touched
-	class:recording={recording == true}
-	class:primed={recording == 'primed'}
+	class:selected
+	class={className}
 	class:empty
-	class:playing style='left:{x}px;top:{y}px' 
-	on:click={click}
+	on:mouseover={mouseover}
 	on:mousedown={mousedown}
-	on:mouseup={mouseup}
+	class:playing style='left:{x}px;top:{y}px' 
+	on:click={onclick}
+	
 
 	>
 <!-- <a href={loop.sample} download={filename}>&DownArrow;</a> -->
@@ -56,11 +82,11 @@ function mouseup(e) {
 		transform: translate(-30px, -30px);
 	}
 	
-	.touched {
+	.selected {
 		border-color: green;
 	}
 
-	.touched.empty {
+	.selected.empty {
 		border-color: red;
 	}
 
@@ -68,18 +94,21 @@ function mouseup(e) {
 	
 
 	.empty {
-		width: 40px;
-		height: 40px;
+		width: 20px;
+		height: 20px;
 		background: white;
-		transform: translate(-20px, -20px);
+		border-color: lightgrey;
+		transform: translate(-10px, -10px);
 	}
 	
 	.recording {
 		background: red;
+		border-color: black;
 	}
 
 	.primed {
-		background: orange
+		background: orange;
+		border-color: black;
 	}
 	.playing {
 		background: cyan;

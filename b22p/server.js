@@ -44,12 +44,12 @@ app.post('/upload', function(req, res) {
 
   const fileStem = uuid(6)
 
-  const filename = `${projectId}/${fileStem}.${ext}`
+  const filename = `/${projectId}/${fileStem}.${ext}`
 
-  const uploadFolder = path.resolve(`${__dirname}/uploads/` )
+  const uploadFolder = path.resolve(`${__dirname}/uploads/${projectId}` )
   mkdirp.sync(uploadFolder)
   
-  const uploadPath = path.resolve(`${__dirname}/uploads/${filename}` )
+  const uploadPath = path.resolve(`${__dirname}/uploads${filename}` )
 
   sampleFile.mv( uploadPath, function(err) {
     if (err) {
@@ -64,89 +64,102 @@ app.post('/upload', function(req, res) {
 })
 
 
-let projectData = {
-  id: "myProjectId",
-  name: 'myProjectId', 
-  bpm: 120,
-  loops: {
-    "0:0": { id: "0:0", row: 0, channel: 0, url: "/audio/loops/Kit_Drums_MixDown1_C_120BPM.wav", loopLength: 1, gain:0.7 },
-    "1:0": { id: "1:0", row: 0, channel: 1, url:  "/audio/loops/Kit_PianoHigh_C_120BPM.wav",loopLength: 1,  },
-    "2:0": { id: "2:0", row: 0, channel: 2, url:  "/audio/metro.wav",loopLength: 1,  },
-    "3:1": { id: "3:1", row: 1, channel: 3, url:  "/audio/loops/51_XIV 120BPM Csmin Sample.wav", loopLength: 1, gain:0.5 }
-  }
-}
+// let projectData = {
+//   id: "myProjectId",
+//   name: 'myProjectId', 
+//   bpm: 120,
+//   loops: {
+//     "0:0": { id: "0:0", row: 0, channel: 0, url: "/audio/loops/Kit_Drums_MixDown1_C_120BPM.wav", loopLength: 1, gain:0.7 },
+//     "1:0": { id: "1:0", row: 0, channel: 1, url:  "/audio/loops/Kit_PianoHigh_C_120BPM.wav",loopLength: 1,  },
+//     "2:0": { id: "2:0", row: 0, channel: 2, url:  "/audio/metro.wav",loopLength: 1,  },
+//     "3:1": { id: "3:1", row: 1, channel: 3, url:  "/audio/loops/51_XIV 120BPM Csmin Sample.wav", loopLength: 1, gain:0.5 }
+//   }
+// }
 
 
-const fibre = require('./fibre.js')
-const db = {
-  
-}
+// const emptyProjectData = require("./emptyProjectData.js")
 
-fibre.connect().then(() => {
-  db.projects = fibre.collection("projects")
-})
+const doc = require('./doc.js')
 
+doc.connect()
 
 
 io.on('connection', (socket) => {
     
     console.log("connected!")
 
-    let project_id
+    // socket.on('doc:create', (collection, data, fn) => {
+    //   doc.set(collection, data._id, data)
+    //   fn(data)
+    // })
 
-    socket.on('project:create', (fn) => {
-
-      const _id = uuid(20)
-      db.projects.set(_id, { _id })
-      fn({_id})
-    })
-
-    socket.on('project:query', (q, fn) => {
-      console.log("X", q)
-      db.projects.query(q).then(data => {
+    socket.on('doc:query', (collection, q, fn) => {
+      
+      doc.query(collection, q).then(data => {
         fn(data)
       })
     })
 
-    socket.on('project:set', ( data) => {
-      db.projects.set(project_id, data)
+    
+    // 0 && doc.set("projects.1", {"loops.1.playing": false})
+    // 0 && doc.set("projects.1", {"loops.1.playing": false})
+    
+    socket.on('doc:set', (path, data, fn) => {
+      
+      const [collection, doc_id] = path.split(".") 
+      
+      
 
-      // fibre.set("projects", current_project_id, data )
-console.log("emit", project_id,data)
-      io.to(project_id).emit("project:set", data)
+      doc.set(collection, doc_id, data)
+
+      
+      io.to(path).emit("doc "+path, data)
+      
+      if(fn) {
+        fn()
+      }
       
     })
 
     
-    socket.on('project:delete', (_id, fn) => {
-      db.projects.remove(_id)
-      fn({_id})
+    socket.on('doc:remove', (path, fn) => {
+
+      const [collection, doc_id] = path.split(".") 
+
+      doc.remove(collection, doc_id)
+
+      io.to(path).emit("doc "+path, null) // deleted
+
+      if(fn) {
+        fn()
+      }
+
     })
 
-    socket.on('project:find', (_id, fn) => {      
-      db.projects.get(_id).then(data => {
-        fn(data)
-      })
+    socket.on('doc:get', (path, fn) => {      
+      const [collection, doc_id] = path.split(".") 
+      doc.get(collection, doc_id).then(fn)
     })
     
-    socket.on('project:sub', (_id) => {
-      project_id = _id
-      socket.join(_id)
+    socket.on('doc:sub', (path) => {
+      socket.join(path)
     })
 
-    socket.on('project:unsub', () => {
-      socket.leave(project_id)
-      project_id = null
+    socket.on('doc:unsub', (path, _id) => {
+      socket.leave(path)
     })
 
     socket.on('disconnect', () => {
-      if(project_id) {
-        socket.leave(project_id)
-        project_id = null
-      }
+      
+      //   socket.leave(project_id)
+      //   project_id = null
+      // }
     })
 
 
+    socket.on("get_time", (time, fn) => {
+        fn(time, Date.now())  
+    })
 
     // socket.on('open', (pid, fn) => {
 

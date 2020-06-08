@@ -2,27 +2,28 @@
 import { onMount } from 'svelte'
 let devices = []
 
-export let selectedInput
+export let selectedIndex
 export let onselect=()=>{}
 
 onMount(async () => {
-    devices = (await navigator.mediaDevices.enumerateDevices())
-    console.log(devices)
-    devices = devices.filter((d) => d.kind === 'audioinput')// || d.kind == "audiooutput")
+    devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput')// || d.kind == "audiooutput")
+    
+    selectedIndex = devices.findIndex(d => d.deviceId == localStorage.recorderDeviceId) 
+
+    if(selectedIndex < 0) 
+        selectedIndex = 0
+
 })
 
 
 function change(e) {
-    const d = devices[e.srcElement.value]
-    selectedInput = d
-    console.log(d)
-    onselect(d)
+    localStorage.recorderDeviceId = devices[e.srcElement.value].deviceId
 }
 
 </script>
 
-<select on:change={change}>
-{#each devices as x, index}
-<option value={index}>{x.label}</option>
+<select on:change={change} value={selectedIndex}>
+{#each devices as device, index}
+<option value={index}>{device.label}</option>
 {/each}
 </select>

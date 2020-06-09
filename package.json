@@ -23,6 +23,7 @@
     "mkdirp": "^1.0.4",
     "mongo-dot-notation": "^2.0.0",
     "mongodb": "^3.5.8",
+    "page": "^1.11.6",
     "rollup-plugin-notify": "^1.1.0",
     "sirv-cli": "^0.4.4",
     "socket.io": "^2.3.0",

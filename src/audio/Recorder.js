@@ -41,7 +41,7 @@ function recordAudio2({deviceId}, chunkSize, meteringCallback) {
     }}
 
     return new Promise(resolve => {
-      
+        
         navigator.mediaDevices.getUserMedia(constraints)
             .then(stream => {
 

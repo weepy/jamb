@@ -3,9 +3,13 @@ import { onMount } from 'svelte'
 let devices = []
 
 export let selectedIndex
-export let onselect=()=>{}
+// export let onselect=()=>{}
 
 onMount(async () => {
+    
+
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true})
+
     devices = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audioinput')// || d.kind == "audiooutput")
     
     selectedIndex = devices.findIndex(d => d.deviceId == localStorage.recorderDeviceId) 

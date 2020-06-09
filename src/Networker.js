@@ -1,64 +1,38 @@
-import _debug from 'debug'
-
-const debug = _debug('networker')
-
-const localActions = {
-	noteon:1, noteoff:1, loadinstr:1
-}
-
+import io from 'socket.io-client'
 
 class Networker {
-	
-	constructor(socket, actions, thisUser) {
+    constructor() {
+        this.events = {}
 
-		this.thisUser = thisUser
-		this.socket = socket
-		this.actions = actions
-		for(var action in actions) {
-			this.addAction(action)
-		}
-		this.pingTime = 0
-	}
+        this.socket = io()
+    }
+    
+    
+    // LOCAL
+    localemit (event, ...args) {
+        for (let i of this.events[event] || []) {
+            i(...args)
+        }
+    }
+    
+    emit (event, ...args) {
+        this.socket.emit(event, ...args)
+        console.log("emit", ...args)
+    }
 
-	mockdelay() {
-		const d = parseFloat(localStorage.delay)||0
-		const j = parseFloat(localStorage.jitter)||0
-		return d * (1+j*(Math.random()-0.5))
-	}
+    localon (event, cb) {
+        ;(this.events[event] = this.events[event] || []).push(cb)
+        return () => (this.events[event] = this.events[event].filter(i => i !== cb))
+    }
 
-	addAction(action) {
-		
-		this.socket.on(action, (arg, uid) => {
-			
-			debug("receive", action, arg, uid)
-			// IGNORE KEY EVENT IF ITS ME
-			if(localActions[action] && !localStorage.nolocalSend && uid == this.thisUser.uid) {
-				return
-			}
+    on(event, cb) {
+        this.socket.on(event, (...args) => {
 
-			this.actions[action](arg, uid)
-		})
-	}
-
-	run(action, arg) {
-		
-		// debug("emit", action, arg)
-		this.socket.emit(action, arg, this.mockdelay())
-		
-		const uid = this.thisUser.uid
-		
-		
-		if(localStorage.nolocalSend) {
-			return
-		}
-
-		// MB RUN LOCALLY
-		if(localActions[action]) {
-			setTimeout(() => {
-				this.actions[action](arg, uid)
-			}, this.pingTime)
-		}
-	}
+            console.log("on", event, ...args)
+            cb(...args)
+        })
+    }
 }
+
 
 export default Networker

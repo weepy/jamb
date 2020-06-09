@@ -88,35 +88,6 @@ class AudioGraph {
 
     }
 
-
-//     connect() {
-
-       
-//         const mainmix = this.channels.mainmix.input
-
-//         for(var i in this.channels) {
-
-//             const channel = this.channels[i]
-//             if(i == "mainmix") {
-//                 channel.output.connect(this.context.destination)
-//             }
-//             else if(i == "submix") {
-//             //    channel.output.connect(mainmix)
-//             }
-//             else {
-//                 throw new Error("should create any channels with id: " + i)
-//                 channel.output.connect(mainmix)
-// //                channel.suboutput.connect(this.channels.submix.input)
-//             }
-
-//         }
-
-
-    
-//     }
-    
-   
-
     calcStartOffset(loop) {
         
         // let currentTime = now()/1000 //this.context.currentTime
@@ -129,7 +100,7 @@ class AudioGraph {
 
     calculateOriginTime() {
         const dom = this.findDominantLoop() 
-        return dom ? dom.origin : now()
+        return dom ? dom.origin : (now() ) //
     }
 
     findDominantLoop() {
@@ -146,25 +117,7 @@ class AudioGraph {
         return dom
     }
 
-    findOrigin( time ) {
-        return this.project.info.origin
 
-        
-        let origin = time
-
-        for(var i in this.loops) {
-            const loop = this.loops[i]
-            if(loop.origin > 0) {
-                if (loop.origin < origin)
-                    origin = loop.origin
-            }
-
-        }
-
-
-        return origin
-        
-    }
 
     destroy() {
         

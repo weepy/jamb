@@ -80,6 +80,7 @@ io.on('connection', (socket) => {
     
     
     socket.on('doc:set', (path, data, fn) => {
+
       
       const [collection, doc_id] = path.split(".") 
       

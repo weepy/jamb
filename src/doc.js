@@ -23,8 +23,10 @@ const doc = {
     },
 
     set(path, data, fn) {
-        console.log(path, data)
-        socket.emit("doc:set", path, data, fn)
+        setTimeout(() => {
+            socket.emit("doc:set", path, data, fn)
+        },100)
+        
     },
 
     remove(path, fn) {

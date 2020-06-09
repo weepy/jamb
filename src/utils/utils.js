@@ -347,11 +347,15 @@ import io from 'socket.io-client'
 
 // let error = Math.random()*100
 
+// function now() {
+//     return (Date.now()) / 1000
+// }
+
+let serverOffset = 0
 function now() {
-    return (Date.now()) / 1000
+
+    return (Date.now()+serverOffset) / 1000
 }
-
-
 
 
 const socket = io()
@@ -363,8 +367,8 @@ setInterval(()=> {
         const roundTrip = now - sentAt
         const serverTimeGuess = serverTime + roundTrip/2
         const offset = serverTimeGuess - now
-        
-        // console.log(offset)
+        serverOffset = offset
+        console.log("offset", offset, "roundTrip", roundTrip)
     })
 }, 1000)
 

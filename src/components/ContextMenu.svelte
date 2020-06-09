@@ -50,7 +50,7 @@ function change(e) {
 
 
 {#if $contextItem}
-<div id="contextmenu">
+<div id="contextmenu" on:keypress|stopPropagation on:keyup|stopPropagation>
 
 <ul>
 <li>{loop._id}</li>

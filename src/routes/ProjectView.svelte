@@ -42,14 +42,18 @@ function handleLauncherSelect(mode, loops) {
 
 
         if(starting.length) {
-            const originTime = graph.calculateOriginTime()
 
+            const dom = graph.findDominantLoop() 
+
+            const originTime = dom ? dom.origin : time+0.1
+            
             if(project.info.origin != originTime )  {
-                data.info = {"origin": originTime }
+                // data.info = {"origin": originTime }
+                doc.set("projects."+project._id, {"info":{"origin": originTime }})
             }
 
             starting.forEach(loop => {
-                data.loops[loop._id] = { startAt : time }
+                data.loops[loop._id] = { startAt : time+0.1 }
             })
         }
 

@@ -32,20 +32,29 @@ function mousedown(e) {
     mode = "selecting"
     selectedLoops = []
 
-    const x = e.pageX-launcherElement.offsetLeft
-    const y = e.pageY-launcherElement.offsetTop
+    const ox = e.pageX-launcherElement.offsetLeft
+    const oy = e.pageY-launcherElement.offsetTop
 
-    if((e.target.id == "launcher") && Keyboard.pressed.Meta) {
+    if((e.target.id == "launcher")) {
+        
+        const x = Math.floor((ox-30)/80)
+        const y = Math.floor((oy-30)/80)
 
+        for(var i in loops) {
+            const loop = loops[i]
+            if(!loop._deleted && x == loop.x && y == loop.y)
+                return
+        }
 
         longclicktimer = setTimeout(() => {
             console.log("longclick")
-            const loop = newLoop({x:Math.floor((x-30)/80), y:Math.floor((y-30)/80)})
+
+            const loop = newLoop({x,y})
             recorderLoop.set(loop)
             // const loop = newLoop()
             // recorderLoop.set(loop)
             recordState.set("primed")
-        }, 0)
+        }, 100)
     }
 
 }

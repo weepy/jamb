@@ -3,6 +3,7 @@
 import { onMount } from 'svelte'
 import AudioGraph from '../audio/AudioGraph.js'
 import {uploadBlob, partition, now, merge, uuid, isPlaying } from '../utils/utils.js'
+import Instructions from '../components/Instructions.svelte'
 
 import RecordBar from '../components/RecordBar.svelte'
 import { convertBufferToOgg } from '../utils/oggUtils.js'
@@ -45,7 +46,7 @@ function handleLauncherSelect(mode, loops) {
 
             const dom = graph.findDominantLoop() 
 
-            const originTime = dom ? dom.origin : time+0.1
+            const originTime = dom ? dom.origin : time
 
             if(project.info.origin != originTime )  {
                 // data.info = {"origin": originTime }
@@ -53,7 +54,7 @@ function handleLauncherSelect(mode, loops) {
             }
 
             starting.forEach(loop => {
-                data.loops[loop._id] = { startAt : time+0.1*0.5 }
+                data.loops[loop._id] = { startAt : time }
             })
         }
 
@@ -139,7 +140,7 @@ async function handleRecording(recordingData, buffer) {
 
 <RecordBar project={project} graph={graph} handleRecording={handleRecording}></RecordBar>
 
-
+<Instructions style="right: 0; top:0; position: absolute;" />
 
 <br/>
 <a href="/projects">&lArr; projects</a>

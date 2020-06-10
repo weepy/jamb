@@ -53,15 +53,15 @@ function change(e) {
 <div id="contextmenu" on:keypress|stopPropagation on:keyup|stopPropagation>
 
 <ul>
-<li>{loop._id}</li>
-<li>offset: {loop.offset}</li>
-<li>file: {loop.url.split("/").pop()}</li>
+<!-- <li>{loop._id}</li> -->
+<!-- <li>offset: {loop.offset}</li> -->
+<li>{loop.url.split("/").pop()}</li>
 <li>loopLength: 
     <input type="text" name="loopLength" value={loop.loopLength} on:change={change} />
 </li>
-<li>speed: 
+<!-- <li>speed: 
     <input type="text" name="playbackRate" value={loop.playbackRate||1} on:change={change} />
-</li>
+</li> -->
 <li>gain: 
     <input type="range" min=0 max=2 step=0.01 name="gain" value={loop.gain||1} on:input={change} />
 </li>

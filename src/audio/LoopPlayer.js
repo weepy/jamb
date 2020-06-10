@@ -77,8 +77,11 @@ class LoopPlayer {
         }
         
         if(o.startAt) {
-            if(this.isPlaying()) {
-                const startOffset = this.graph.calcStartOffset(this)
+
+            const startOffset = this.graph.calcStartOffset(this)
+
+
+            if(this.isPlaying()) {    
                 this.start(startOffset)
             }
         }

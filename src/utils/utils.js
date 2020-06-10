@@ -352,25 +352,27 @@ import io from 'socket.io-client'
 // }
 
 let serverOffset = 0
+let roundTrip = 0
 function now() {
 
-    return (Date.now()+serverOffset) / 1000
+    return (Date.now()+0) / 1000
 }
 
 
-const socket = io()
+// const socket = io()
 
-setInterval(()=> {
-    socket.emit("get_time", Date.now(), (sentAt, serverTime) => {
-        const now = Date.now()
+// setInterval(()=> {
+//     socket.emit("get_time", Date.now(), (sentAt, serverTime) => {
+//         const now = Date.now()
         
-        const roundTrip = now - sentAt
-        const serverTimeGuess = serverTime + roundTrip/2
-        const offset = serverTimeGuess - now
-        serverOffset = offset
-        console.log("offset", offset, "roundTrip", roundTrip)
-    })
-}, 1000)
+//         const trip = now - sentAt
+//         const serverTimeGuess = serverTime + trip/2
+//         const offset = serverTimeGuess - now
+//         serverOffset = serverOffset*0.9 + offset*0.1
+//         roundTrip = roundTrip * 0.9 + trip*0.1
+//         console.log("offset", serverOffset, "roundTrip", roundTrip)
+//     })
+// }, 1000)
 
 
 function partition(a, fn) {

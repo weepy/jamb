@@ -9,12 +9,11 @@ $: projects = params.projects
 
 
 function createProject() {
-    const data = emptyProjectData(4,4)
+    const data = emptyProjectData(5,5)
 
-    data.loops["a"] = { _id: "a", x: 0, y: 0, url: "/audio/loops/Kit_Drums_MixDown1_C_120BPM.wav", loopLength: 1, gain:0.7 },
-    data.loops["b"] = { _id: "b", x: 0, y: 1, url:  "/audio/loops/Kit_PianoHigh_C_120BPM.wav",loopLength: 1,  },
-    data.loops["c"] = { _id: "c", x: 0, y: 2, url:  "/audio/metro.wav",loopLength: 1,  },
-    data.loops["d"] = { _id: "d", x: 1, y: 3, url:  "/audio/loops/51_XIV 120BPM Csmin Sample.wav", loopLength: 1, gain:0.5 }
+    data.loops["a"] = { _id: "a", x: 0, y: 0, url: "/audio/drumloop.ogg", loopLength: 2, gain:0.7 },
+    data.loops["c"] = { _id: "c", x: 1, y: 0, url:  "/audio/metro.ogg",loopLength: 2, gain:0.5  },
+    data.loops["d"] = { _id: "d", x: 2, y: 0, url:  "/audio/pianoloop.ogg", loopLength: 8, gain:0.7 }
 
 
     data._id = Math.random().toString(36).slice(2)

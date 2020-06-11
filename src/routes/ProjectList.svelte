@@ -15,7 +15,6 @@ function createProject() {
     data.loops["c"] = { _id: "c", x: 1, y: 0, url:  "/audio/metro.ogg",loopLength: 2, gain:0.5  },
     data.loops["d"] = { _id: "d", x: 2, y: 0, url:  "/audio/pianoloop.ogg", loopLength: 8, gain:0.7 }
 
-
     data._id = Math.random().toString(36).slice(2)
     
     doc.set("projects."+data._id, data, () => {
